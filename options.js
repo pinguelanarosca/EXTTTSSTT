@@ -458,7 +458,7 @@
     'gemini-2.5-flash'
   ];
 
-  // Testar Chave Ativa Atual
+  // Testar Chave Ativa Atual (Usa modelo leve gemini-3.1-flash-lite de texto, sem gastar cota de TTS)
   const testActiveKeyBtn = document.getElementById('testActiveKeyBtn');
   if (testActiveKeyBtn) {
     testActiveKeyBtn.addEventListener('click', async () => {
@@ -472,35 +472,41 @@
           throw new Error('Nenhuma chave API ativa configurada.');
         }
 
-        const chosenTTS = currentSettings.ttsModel || 'gemini-3.8-flash-lite-tts';
-        const chosenSTT = currentSettings.sttModel || 'gemini-3.5-flash-lite';
+        // Teste de conexão direta no modelo de texto leve gemini-3.1-flash-lite (sem TTS)
+        const primaryTestModel = 'gemini-3.1-flash-lite';
+        const fallbackTestModel = 'gemini-2.5-flash-lite';
 
-        // Teste de conexão direta no modelo de TTS selecionado
-        const ttsUrl = `https://generativelanguage.googleapis.com/v1beta/models/${chosenTTS}:generateContent?key=${encodeURIComponent(creds.apiKey)}`;
-        const ttsRes = await fetch(ttsUrl, {
+        let testedModel = primaryTestModel;
+        let testUrl = `https://generativelanguage.googleapis.com/v1beta/models/${primaryTestModel}:generateContent?key=${encodeURIComponent(creds.apiKey)}`;
+        let testRes = await fetch(testUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: 'teste de conexao tts' }] }],
-            generationConfig: {
-              responseModalities: ['AUDIO'],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName: 'Kore' }
-                }
-              }
-            }
+            contents: [{ parts: [{ text: 'ping' }] }]
           })
         });
 
-        if (ttsRes.ok) {
+        if (!testRes.ok) {
+          // Fallback para gemini-2.5-flash-lite se o endpoint preferencial oscilar
+          testedModel = fallbackTestModel;
+          testUrl = `https://generativelanguage.googleapis.com/v1beta/models/${fallbackTestModel}:generateContent?key=${encodeURIComponent(creds.apiKey)}`;
+          testRes = await fetch(testUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: 'ping' }] }]
+            })
+          });
+        }
+
+        if (testRes.ok) {
           if (pingResult) {
-            pingResult.innerText = `✓ Conexão bem-sucedida! Chave #${creds.keyIndex + 1} validada no modelo TTS (${chosenTTS}) e pronta para STT (${chosenSTT}).`;
+            pingResult.innerText = `✓ Conexão bem-sucedida! Chave #${creds.keyIndex + 1} validada com sucesso via Gemini (${testedModel})!`;
             pingResult.style.color = '#34d399';
           }
         } else {
-          const err = await ttsRes.json().catch(() => ({}));
-          throw new Error(err.error?.message || `HTTP ${ttsRes.status}`);
+          const err = await testRes.json().catch(() => ({}));
+          throw new Error(err.error?.message || `HTTP ${testRes.status}`);
         }
       } catch (err) {
         if (pingResult) {

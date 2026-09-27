@@ -719,18 +719,34 @@
 
       validateApiKeyBtn.innerText = 'Testando com Google...';
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${encodeURIComponent(key)}`;
-        const res = await fetch(url, {
+        const primaryTestModel = 'gemini-3.1-flash-lite';
+        const fallbackTestModel = 'gemini-2.5-flash-lite';
+        let testedModel = primaryTestModel;
+
+        let url = `https://generativelanguage.googleapis.com/v1beta/models/${primaryTestModel}:generateContent?key=${encodeURIComponent(key)}`;
+        let res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: 'teste de conexao' }] }]
+            contents: [{ parts: [{ text: 'ping' }] }]
           })
         });
 
+        if (!res.ok) {
+          testedModel = fallbackTestModel;
+          url = `https://generativelanguage.googleapis.com/v1beta/models/${fallbackTestModel}:generateContent?key=${encodeURIComponent(key)}`;
+          res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: 'ping' }] }]
+            })
+          });
+        }
+
         if (res.ok) {
           if (apiKeyValidationMsg) {
-            apiKeyValidationMsg.innerText = '✓ Chave Gemini Válida e Operacional!';
+            apiKeyValidationMsg.innerText = `✓ Chave Gemini Válida e Operacional! (${testedModel})`;
             apiKeyValidationMsg.style.color = '#34d399';
           }
         } else {
