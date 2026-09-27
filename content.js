@@ -1275,7 +1275,8 @@
     const useCount = creds.counters[`key_${creds.keyIndex}_model_${creds.modelIndex}`] || 0;
     const payloadInfo = `Texto: ${text.length} chars | Voz: ${baseVoiceName} | Chave #${creds.keyIndex + 1} | Modelo ${creds.modelIndex === 0 ? '3.5' : '3.1'} [${useCount}/10]`;
 
-    const chosenTTS = settings.ttsModel || 'gemini-3.8-flash-lite-tts';
+    const activeAgent = getActiveAgent();
+    const chosenTTS = activeAgent.ttsModel || settings.ttsModel || 'gemini-3.8-flash-lite-tts';
     const ttsCascade = [chosenTTS, ...EXT_TTS_CASCADE.filter(m => m !== chosenTTS)];
 
     return await executeDirectWithFallback('TTS', ttsCascade, payloadInfo, async (modelName) => {
@@ -1323,7 +1324,11 @@
     const useCount = creds.counters[`key_${creds.keyIndex}_model_${creds.modelIndex}`] || 0;
     const payloadInfo = `Áudio (${Math.round(cleanBase64.length / 1024)} KB) | Chave #${creds.keyIndex + 1} | Modelo ${creds.modelIndex === 0 ? '3.5' : '3.1'} [${useCount}/10]`;
 
-    const chosenSTT = settings.sttModel || 'gemini-3.5-flash-lite';
+    // Resolução de modelo do Agente Transcritor
+    const activeTranscribAgentId = settings.activeTranscriberAgentId || settings.activeAgentId || 'default-natural';
+    const list = [...DEFAULT_AGENTS, ...(Array.isArray(settings.customAgents) ? settings.customAgents : [])];
+    const activeAgent = list.find(a => a.id === activeTranscribAgentId) || list[0];
+    const chosenSTT = activeAgent.sttModel || settings.sttModel || 'gemini-3.5-flash-lite';
     const sttCascade = [chosenSTT, ...EXT_STT_CASCADE.filter(m => m !== chosenSTT)];
 
     return await executeDirectWithFallback('STT', sttCascade, payloadInfo, async (modelName) => {
@@ -1516,6 +1521,18 @@
           const agentBadge = hud.querySelector('.vocallens-agent-badge');
           if (agentBadge && request.agent) {
             agentBadge.innerText = request.agent.name.replace(/^(🎙️|📻|🎓|⚡|🧘|💼|💬|🧙|✨)\s*/, '');
+          }
+        }
+        sendResponse({ success: true });
+        return true;
+      }
+
+      if (request.action === 'SET_TRANSCRIBER_AGENT') {
+        settings.activeTranscriberAgentId = request.agentId;
+        if (request.agent) {
+          settings.transcriberInstruction = request.agent.transcriberInstruction;
+          if (request.agent.sttModel) {
+            settings.sttModel = request.agent.sttModel;
           }
         }
         sendResponse({ success: true });

@@ -431,8 +431,8 @@
 
         <nav class="sidebar-nav">
           <button class="tab-btn active" data-tab="tab-lab">⚡ Laboratório</button>
-          <button class="tab-btn" data-tab="tab-mixer">🎛️ Mixer &amp; Personalização</button>
-          <button class="tab-btn" data-tab="tab-agents">🤖 Modelos &amp; Chaves API</button>
+          <button class="tab-btn" data-tab="tab-agents">🎭 Agentes &amp; API</button>
+          <button class="tab-btn" data-tab="tab-mixer">🎛️ Mixer Master DSP</button>
           <button class="tab-btn" data-tab="tab-history">🎙️ Histórico STT</button>
           <button class="tab-btn" data-tab="tab-instructions">📑 Guia de Atalhos</button>
           <button class="tab-btn" data-tab="tab-github">🐙 Sincronização Git</button>
@@ -473,8 +473,14 @@
           <div class="card">
             <div class="card-title">🔊 Testador de Sintetizador TTS</div>
             <p style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">
-              Digite qualquer texto abaixo para testar a narração com a voz e equalização selecionadas.
+              Selecione o agente para utilizar seus comportamentos e sua voz neural durante o teste, ou digite o texto livre.
             </p>
+            <div class="input-group" style="margin-bottom: 12px;">
+              <label for="labAgentSelect" style="font-weight: 700; color: #38bdf8;">🎭 Selecionar Agente para Teste</label>
+              <select id="labAgentSelect" style="background:#020617; border:1px solid #1e293b; border-radius:10px; padding:12px; color:#f8fafc; font-size:13px; font-weight:600; width:100%;">
+                <!-- Populado dinamicamente -->
+              </select>
+            </div>
             <div class="input-group">
               <label for="labTtsInput">Texto para Teste de Fala</label>
               <textarea id="labTtsInput" rows="3" placeholder="Insira uma frase para ouvir a síntese neural da voz ativa...">O STT e TTS de Satiro traz síntese neural de alta fidelidade e transcrição precisa via Gemini.</textarea>
@@ -509,50 +515,37 @@
 
       <!-- ABA 2: AGENTES, MODELOS & API -->
       <div id="tab-agents" class="tab-content">
-        <!-- Seleção de Modelos Oficiais Gemini (TTS & STT) -->
+        <!-- Seleção de Agente Ativo da Aplicação -->
         <div class="card">
-          <div class="card-title">🤖 Seleção de Modelos Gemini (TTS &amp; STT)</div>
+          <div class="card-title">🎭 Seleção de Agente Ativo da Aplicação</div>
           <p style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">
-            Defina quais modelos neurais do ecossistema Gemini serão priorizados para síntese de voz (TTS) e transcrição de áudio do microfone (STT).
+            Substituindo a seleção manual de modelos: o agente selecionado aqui determina automaticamente os modelos de TTS/STT, vozes neurais e regras de fallback preferidas na aplicação.
           </p>
 
-          <div class="grid-2">
-            <!-- Modelo TTS -->
-            <div class="input-group">
-              <label for="ttsModel">🔊 Modelo para Síntese de Voz (TTS)</label>
-              <select id="ttsModel" style="background:#020617; border:1px solid #1e293b; border-radius:10px; padding:12px; color:#f8fafc; font-size:13px; font-weight:600;">
-                <option value="gemini-3.8-live-thinking">1. Gemini 3.8 Live Extended Thinking (Raciocínio Profundo & Fala)</option>
-                <option value="gemini-3.8-live">2. Gemini 3.8 Live (Streaming Instantâneo ao Vivo)</option>
-                <option value="gemini-3-flash-live">3. Gemini 3 Flash Live (Áudio Bidirecional Rápido)</option>
-                <option value="gemini-3.8-flash-lite-tts">4. Gemini 3.8 Flash Lite TTS (Ultra-rápido, menor latência)</option>
-                <option value="gemini-3.8-flash-tts">5. Gemini 3.8 Flash TTS (Máxima fidelidade e expressividade)</option>
-                <option value="gemini-3.1-flash-tts">6. Gemini 3.1 Flash TTS (Síntese Neural Ágil)</option>
-                <option value="gemini-2.5-flash-tts">7. Gemini 2.5 Flash TTS (Estabilidade e Alta Compatibilidade)</option>
-                <option value="gemini-3.1-flash-maps-grounding">8. Map grounding Gemini 3.1 Flash TTS (Contexto & Localização)</option>
-              </select>
-              <span style="font-size: 11px; color: #38bdf8; display: block; margin-top: 6px;">
-                ⚡ Ordem de cascata automática: 3.8 Live Thinking ➔ 3.8 Live ➔ 3 Flash Live ➔ 3.8 Flash Lite ➔ 3.8 Flash ➔ 3.1 Flash ➔ 2.5 Flash ➔ Map Grounding 3.1.
-              </span>
+          <div style="background:rgba(15, 23, 42, 0.8); border:1px solid #334155; border-radius:10px; padding:16px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <label for="globalAgentSelect" style="font-weight:700; color:#38bdf8; font-size:14px; margin:0;">
+                Escolha o Agente Geral Ativo:
+              </label>
+              <span id="globalAgentActiveBadge" style="font-size:11px; background:#059669; color:#fff; padding:3px 10px; border-radius:6px; font-weight:700;">EM USO</span>
             </div>
-
-            <!-- Modelo STT -->
-            <div class="input-group">
-              <label for="sttModel">🎙️ Modelo para Transcrição de Fala (STT)</label>
-              <select id="sttModel" style="background:#020617; border:1px solid #1e293b; border-radius:10px; padding:12px; color:#f8fafc; font-size:13px; font-weight:600;">
-                <option value="gemini-3.8-live-thinking">1. Gemini 3.8 Live Extended Thinking (Raciocínio & Pontuação)</option>
-                <option value="gemini-3.8-live">2. Gemini 3.8 Live (Transcrição Contínua ao Vivo)</option>
-                <option value="gemini-3-flash-live">3. Gemini 3 Flash Live (Detecção em Tempo Real)</option>
-                <option value="gemini-3.8-flash-lite-stt">4. Gemini 3.8 Flash Lite STT (Ultra-baixa latência instantânea)</option>
-                <option value="gemini-3.8-flash-stt">5. Gemini 3.8 Flash STT (Fidelidade Semântica Elevada)</option>
-                <option value="gemini-3.1-flash-stt">6. Gemini 3.1 Flash STT (Alta Velocidade e Precisão)</option>
-                <option value="gemini-2.5-flash-stt">7. Gemini 2.5 Flash STT (Fidelidade Gramatical Completa)</option>
-                <option value="gemini-3.1-flash-maps-grounding">8. Map grounding Gemini 3.1 Flash STT (Ancoragem Geográfica)</option>
-              </select>
-              <span style="font-size: 11px; color: #34d399; display: block; margin-top: 6px;">
-                ⚡ Ordem de cascata automática para transcrição do microfone e gravação.
-              </span>
+            <select id="globalAgentSelect" style="width:100%; font-size:13px; font-weight:600; padding:12px; background:#020617; border:1px solid #1e293b; color:#fff; border-radius:8px;">
+              <!-- Populado dinamicamente -->
+            </select>
+            <div id="globalAgentDetails" style="margin-top:12px; padding-top:12px; border-top:1px solid #1e293b; display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:12px;">
+              <div>🔊 <strong>Modelo TTS Vinculado:</strong> <span id="globalAgentTtsModel" style="color:#38bdf8; font-weight:600;">Carregando...</span></div>
+              <div>🎙️ <strong>Modelo STT Vinculado:</strong> <span id="globalAgentSttModel" style="color:#34d399; font-weight:600;">Carregando...</span></div>
+              <div style="grid-column: span 2;">🗣️ <strong>Voz Preferencial:</strong> <span id="globalAgentVoice" style="color:#e2e8f0;">Carregando...</span></div>
             </div>
           </div>
+
+          <!-- Elementos Ocultos de Compatibilidade com o Config fields de options.js -->
+          <select id="ttsModel" style="display:none;">
+            <option value="gemini-3.8-flash-lite-tts">gemini-3.8-flash-lite-tts</option>
+          </select>
+          <select id="sttModel" style="display:none;">
+            <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
+          </select>
         </div>
 
         <!-- Painel de Chaves Rotativas API Gemini -->
@@ -576,28 +569,25 @@
             <span id="pingResult" style="font-size: 12px; color: #34d399; font-weight: 600;"></span>
           </div>
         </div>
-      </div>
 
-      <!-- ABA 2: MIXER TTS & PERSONALIZAÇÃO COMPLETA -->
-      <div id="tab-mixer" class="tab-content">
         <!-- Gerenciador de Agentes & Instruções de Comportamento -->
         <div class="card" id="agentManagerCard">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-            <div class="card-title" style="margin-bottom:0;">🎭 Gerenciador de Agentes &amp; Personalização</div>
+            <div class="card-title" style="margin-bottom:0;">🎭 Gerenciador de Agentes &amp; Modificadores</div>
             <div style="display:flex; gap:8px;">
-              <button id="btnCreateNewAgent" class="btn" style="padding:6px 12px; font-size:11px; background:#0284c7;">➕ Criar Novo Agente</button>
+              <button id="btnCreateNewAgent" class="btn" style="padding:6px 12px; font-size:11px; background:#0284c7; display:none;">➕ Criar Novo Agente</button>
               <button id="btnResetAgentsDefault" class="btn btn-secondary" style="padding:6px 10px; font-size:11px;">🔄 Restaurar Padrões</button>
             </div>
           </div>
           <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">
-            Crie, personalize e salve agentes exclusivos. Ao salvar, o agente fica imediatamente disponível nos seletores de síntese de voz (TTS) e transcrição de áudio (STT), aplicando suas diretrizes comportamentais e estilo de fala aos modelos neurais.
+            Selecione um agente para editá-lo ou configure um novo mix de personalização. Ao final, escolha entre salvar como um novo agente ou editar o selecionado.
           </p>
 
-          <!-- Seletor de Agente Ativo no Mixer -->
+          <!-- Seletor de Agente Ativo na Central -->
           <div style="background:rgba(15, 23, 42, 0.8); border:1px solid #334155; border-radius:8px; padding:12px; margin-bottom:16px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
               <label for="agentSelectOptions" style="font-weight:700; color:#38bdf8; font-size:13px; margin:0;">
-                ⭐ Agente Selecionado para Edição / Uso:
+                Editar / Carregar Dados do Agente:
               </label>
               <span id="agentActiveBadge" style="font-size:10px; background:#0284c7; color:#fff; padding:2px 8px; border-radius:4px; font-weight:700;">EM USO</span>
             </div>
@@ -621,6 +611,28 @@
                   <option value="Charon">Charon (Grave e Serena)</option>
                   <option value="Fenrir">Fenrir (Forte e Firme)</option>
                   <option value="Zephyr">Zephyr (Suave e Calma)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- VINCULAÇÃO DE MODELOS AO AGENTE (NOVO) -->
+            <div class="grid-2" style="background: rgba(56, 189, 248, 0.04); border: 1px dashed rgba(56, 189, 248, 0.2); padding: 12px; border-radius: 8px;">
+              <div class="input-group" style="margin-bottom:0;">
+                <label for="agentTtsModelSelect">🔊 Modelo TTS do Agente</label>
+                <select id="agentTtsModelSelect" style="background:#020617; border:1px solid #1e293b; border-radius:8px; padding:10px; color:#f8fafc; font-size:12px;">
+                  <option value="gemini-3.8-flash-lite-tts">1. Gemini 3.8 Flash Lite TTS</option>
+                  <option value="gemini-3.8-flash-tts">2. Gemini 3.8 Flash TTS</option>
+                  <option value="gemini-3.1-flash-tts">3. Gemini 3.1 Flash TTS</option>
+                  <option value="gemini-2.5-flash-tts">4. Gemini 2.5 Flash TTS</option>
+                </select>
+              </div>
+              <div class="input-group" style="margin-bottom:0;">
+                <label for="agentSttModelSelect">🎙️ Modelo STT do Agente</label>
+                <select id="agentSttModelSelect" style="background:#020617; border:1px solid #1e293b; border-radius:8px; padding:10px; color:#f8fafc; font-size:12px;">
+                  <option value="gemini-3.5-flash-lite">1. Gemini 3.5 Flash Lite</option>
+                  <option value="gemini-3.1-flash-lite">2. Gemini 3.1 Flash Lite</option>
+                  <option value="gemini-3.8-flash">3. Gemini 3.8 Flash</option>
+                  <option value="gemini-2.5-flash">4. Gemini 2.5 Flash</option>
                 </select>
               </div>
             </div>
@@ -652,16 +664,20 @@
 
             <!-- Botões de Ação do Agente -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px;">
-              <div style="display:flex; gap:8px;">
-                <button id="btnSaveAgent" class="btn" style="background:#059669;">💾 Salvar Alterações do Agente</button>
-                <button id="btnDuplicateAgent" class="btn btn-secondary">📋 Duplicar como Novo</button>
+              <div style="display:flex; gap:8px; flex:1; flex-wrap:wrap;">
+                <button id="btnEditSelectedAgent" class="btn" style="background:#059669; flex:1; min-width:180px;">✏️ Editar Agente Selecionado</button>
+                <button id="btnSaveAsNewAgent" class="btn" style="background:#0284c7; flex:1; min-width:180px;">💾 Salvar Como Novo Agente</button>
+                <button id="btnDuplicateAgent" class="btn btn-secondary">📋 Duplicar</button>
               </div>
-              <button id="btnDeleteAgent" class="btn btn-danger" style="display:none;">🗑️ Excluir Agente</button>
+              <button id="btnDeleteAgent" class="btn btn-danger" style="display:none;">🗑️ Excluir</button>
             </div>
             <div id="agentActionFeedback" style="font-size:12px; font-weight:600; min-height:16px;"></div>
           </div>
         </div>
+      </div>
 
+      <!-- ABA 3: MIXER TTS COMPLETO & SPECTRUM DSP -->
+      <div id="tab-mixer" class="tab-content">
         <!-- Monitor DSP & Visualizador de Espectro FFT -->
         <div class="dsp-card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">

@@ -614,12 +614,29 @@
     });
   }
 
-  async function directGeminiTTS(text, _ignored, voiceName) {
+  async function directGeminiTTS(text, _ignored, voiceName, instructionOverride = null) {
     const creds = await getRotatingCredentials();
     if (!creds.apiKey) throw new Error('Insira sua Chave Gemini no painel de chaves rotativas da aba Agentes & API.');
 
-    const promptText = (currentSettings.narratorInstruction || 'Narre com tom natural:') + '\n' + text;
-    const selectedV = voiceName || selectedVoice || 'Kore';
+    let baseVoiceName = voiceName || selectedVoice || 'Kore';
+    let voiceInstruction = '';
+
+    // Resolvendo voz customizada se existir
+    const customVoices = currentSettings.customVoices || [];
+    const customMatch = customVoices.find(cv => cv.id === baseVoiceName || cv.name === baseVoiceName);
+    if (customMatch) {
+      baseVoiceName = customMatch.baseVoice || 'Kore';
+      if (customMatch.instruction) {
+        voiceInstruction = customMatch.instruction;
+      }
+    }
+
+    let fullInstruction = instructionOverride || currentSettings.narratorInstruction || 'Narre com tom natural e fluida articulação em português:';
+    if (voiceInstruction) {
+      fullInstruction = '[Instrução da Voz: ' + voiceInstruction + ']\n' + fullInstruction;
+    }
+    const promptText = fullInstruction + '\n' + text;
+    const selectedV = baseVoiceName;
 
     // Incrementa cota antes da requisição para alinhar com a métrica do Google
     await incrementQuotaCounter(creds.keyIndex, creds.modelIndex, creds.logicalQuotaDay, creds.counters);
@@ -772,33 +789,58 @@
   // -------------------------------------------------------------
   function renderAgentsDropdown() {
     const select = document.getElementById('agentSelectOptions');
-    if (!select) return;
+    const globalSelect = document.getElementById('globalAgentSelect');
+    const labSelect = document.getElementById('labAgentSelect');
 
-    select.innerHTML = '';
-    
-    const standardGroup = document.createElement('optgroup');
-    standardGroup.label = '🎭 Agentes Pré-Configurados';
-    const customGroup = document.createElement('optgroup');
-    customGroup.label = '✨ Meus Agentes Personalizados';
+    const populate = (sel, selectedId, suffixActive = false) => {
+      if (!sel) return;
+      sel.innerHTML = '';
+      
+      const standardGroup = document.createElement('optgroup');
+      standardGroup.label = '🎭 Agentes Pré-Configurados';
+      const customGroup = document.createElement('optgroup');
+      customGroup.label = '✨ Meus Agentes Personalizados';
 
-    allAgents.forEach(agent => {
-      const opt = document.createElement('option');
-      opt.value = agent.id;
-      opt.textContent = agent.name + (agent.id === selectedAgentId ? ' (Ativo)' : '');
-      if (agent.isCustom) {
-        customGroup.appendChild(opt);
-      } else {
-        standardGroup.appendChild(opt);
+      allAgents.forEach(agent => {
+        const opt = document.createElement('option');
+        opt.value = agent.id;
+        opt.textContent = agent.name + (suffixActive && agent.id === selectedId ? ' (Ativo)' : '');
+        if (agent.isCustom) {
+          customGroup.appendChild(opt);
+        } else {
+          standardGroup.appendChild(opt);
+        }
+      });
+
+      sel.appendChild(standardGroup);
+      if (customGroup.children.length > 0) {
+        sel.appendChild(customGroup);
       }
-    });
+      sel.value = selectedId;
+    };
 
-    select.appendChild(standardGroup);
-    if (customGroup.children.length > 0) {
-      select.appendChild(customGroup);
-    }
+    const currentActiveId = currentSettings.activeAgentId || 'default-natural';
 
-    select.value = selectedAgentId;
+    populate(select, selectedAgentId, true);
+    populate(globalSelect, currentActiveId, false);
+    populate(labSelect, selectedAgentId, false);
+
     updateActiveAgentBadge();
+    updateGlobalAgentDetailsCard();
+  }
+
+  function updateGlobalAgentDetailsCard() {
+    const activeId = currentSettings.activeAgentId || 'default-natural';
+    const agent = allAgents.find(a => a.id === activeId) || allAgents[0];
+    if (!agent) return;
+
+    const ttsSpan = document.getElementById('globalAgentTtsModel');
+    const sttSpan = document.getElementById('globalAgentSttModel');
+    const voiceSpan = document.getElementById('globalAgentVoice');
+
+    if (ttsSpan) ttsSpan.innerText = agent.ttsModel || currentSettings.ttsModel || 'gemini-3.8-flash-lite-tts';
+    if (sttSpan) sttSpan.innerText = agent.sttModel || currentSettings.sttModel || 'gemini-3.5-flash-lite';
+    if (voiceSpan) voiceSpan.innerText = agent.preferredVoice || selectedVoice || 'Kore';
   }
 
   function updateActiveAgentBadge() {
@@ -820,6 +862,8 @@
 
     const nameInput = document.getElementById('agentNameInput');
     const voiceSelect = document.getElementById('agentVoiceSelect');
+    const ttsSelect = document.getElementById('agentTtsModelSelect');
+    const sttSelect = document.getElementById('agentSttModelSelect');
     const descInput = document.getElementById('agentDescInput');
     const locInput = document.getElementById('locutionInstruction');
     const narInput = document.getElementById('narratorInstruction');
@@ -829,6 +873,8 @@
 
     if (nameInput) nameInput.value = agent.name;
     if (voiceSelect) voiceSelect.value = agent.preferredVoice || 'Kore';
+    if (ttsSelect) ttsSelect.value = agent.ttsModel || 'gemini-3.8-flash-lite-tts';
+    if (sttSelect) sttSelect.value = agent.sttModel || 'gemini-3.5-flash-lite';
     if (descInput) descInput.value = agent.description || '';
     if (locInput) locInput.value = agent.locutionInstruction || '';
     if (narInput) narInput.value = agent.narratorInstruction || '';
@@ -849,25 +895,36 @@
     renderAgentsDropdown();
   }
 
-  // Listener para troca de agente no dropdown
+  // Listener para troca de agente no dropdown do Editor
   const agentSelectOptions = document.getElementById('agentSelectOptions');
   if (agentSelectOptions) {
     agentSelectOptions.addEventListener('change', (e) => {
       loadAgentIntoEditor(e.target.value, true);
-      showAgentFeedback('✓ Agente ativado e carregado com sucesso!', '#34d399');
-      saveSettingsAuto();
+      showAgentFeedback('✓ Agente carregado no editor!', '#38bdf8');
     });
   }
 
-  // Salvar Alterações do Agente
-  const btnSaveAgent = document.getElementById('btnSaveAgent');
-  if (btnSaveAgent) {
-    btnSaveAgent.addEventListener('click', () => {
+  // Listener para troca de agente no dropdown Geral Ativo
+  const globalAgentSelect = document.getElementById('globalAgentSelect');
+  if (globalAgentSelect) {
+    globalAgentSelect.addEventListener('change', (e) => {
+      const chosenId = e.target.value;
+      loadAgentIntoEditor(chosenId, true);
+      showAgentFeedback('✓ Agente geral ativo alterado!', '#34d399');
+    });
+  }
+
+  // Editar Agente Selecionado (Salvar/Sobrescrever)
+  const btnEditSelectedAgent = document.getElementById('btnEditSelectedAgent');
+  if (btnEditSelectedAgent) {
+    btnEditSelectedAgent.addEventListener('click', () => {
       const agent = allAgents.find(a => a.id === selectedAgentId);
       if (!agent) return;
 
       const name = document.getElementById('agentNameInput')?.value.trim() || agent.name;
       const voice = document.getElementById('agentVoiceSelect')?.value || 'Kore';
+      const ttsModelVal = document.getElementById('agentTtsModelSelect')?.value || 'gemini-3.8-flash-lite-tts';
+      const sttModelVal = document.getElementById('agentSttModelSelect')?.value || 'gemini-3.5-flash-lite';
       const desc = document.getElementById('agentDescInput')?.value.trim() || '';
       const loc = document.getElementById('locutionInstruction')?.value.trim() || '';
       const nar = document.getElementById('narratorInstruction')?.value.trim() || '';
@@ -876,37 +933,51 @@
 
       agent.name = name;
       agent.preferredVoice = voice;
+      agent.ttsModel = ttsModelVal;
+      agent.sttModel = sttModelVal;
       agent.description = desc;
       agent.locutionInstruction = loc;
       agent.narratorInstruction = nar;
       agent.transcriberInstruction = tra;
       agent.visionInstruction = vis;
 
-      // Se for agente padrão e foi editado, transforma em customizado para persistir
+      // Se for editado, garante que é salvo como customizado para persistência
       if (!agent.isCustom) {
         agent.isCustom = true;
       }
 
       saveCustomAgentsToStorage();
-      showAgentFeedback('✓ Modificações do agente salvas com sucesso!', '#34d399');
+      showAgentFeedback('✏️ Alterações salvas com sucesso no agente selecionado!', '#34d399');
       saveSettingsAuto();
     });
   }
 
-  // Criar Novo Agente Personalizado
-  const btnCreateNewAgent = document.getElementById('btnCreateNewAgent');
-  if (btnCreateNewAgent) {
-    btnCreateNewAgent.addEventListener('click', () => {
+  // Salvar Como Novo Agente (Criar)
+  const btnSaveAsNewAgent = document.getElementById('btnSaveAsNewAgent');
+  if (btnSaveAsNewAgent) {
+    btnSaveAsNewAgent.addEventListener('click', () => {
+      const name = document.getElementById('agentNameInput')?.value.trim() || 'Novo Agente Personalizado';
+      const voice = document.getElementById('agentVoiceSelect')?.value || 'Kore';
+      const ttsModelVal = document.getElementById('agentTtsModelSelect')?.value || 'gemini-3.8-flash-lite-tts';
+      const sttModelVal = document.getElementById('agentSttModelSelect')?.value || 'gemini-3.5-flash-lite';
+      const desc = document.getElementById('agentDescInput')?.value.trim() || 'Agente customizado';
+      const loc = document.getElementById('locutionInstruction')?.value.trim() || '';
+      const nar = document.getElementById('narratorInstruction')?.value.trim() || '';
+      const tra = document.getElementById('transcriberInstruction')?.value.trim() || '';
+      const vis = document.getElementById('visionInstruction')?.value.trim() || '';
+
       const newId = 'custom-' + Date.now();
       const newAgent = {
         id: newId,
-        name: '✨ Novo Agente ' + (allAgents.filter(a => a.isCustom).length + 1),
-        description: 'Agente personalizado com modificadores de tom e estilo.',
-        preferredVoice: 'Kore',
-        locutionInstruction: 'Você é um locutor dinâmico e envolvente.',
-        narratorInstruction: 'Você é um narrador natural e expressivo. Leia com dicção clara.',
-        transcriberInstruction: 'Transcreva com fidelidade e pontuação correta.',
-        visionInstruction: 'Analise a imagem da tela e descreva detalhadamente os pontos principais.',
+        name: name,
+        preferredVoice: voice,
+        ttsModel: ttsModelVal,
+        sttModel: sttModelVal,
+        description: desc,
+        locutionInstruction: loc,
+        narratorInstruction: nar,
+        transcriberInstruction: tra,
+        visionInstruction: vis,
         isCustom: true
       };
 
@@ -916,7 +987,16 @@
 
       saveCustomAgentsToStorage();
       loadAgentIntoEditor(newId, true);
-      showAgentFeedback('✨ Novo agente criado! Ajuste os modificadores acima e clique em Salvar.', '#38bdf8');
+      showAgentFeedback('💾 Novo agente criado e ativado com sucesso!', '#38bdf8');
+      saveSettingsAuto();
+    });
+  }
+
+  // Criar Novo Agente (Apenas botão fantasma ocultado no HTML para legibilidade)
+  const btnCreateNewAgent = document.getElementById('btnCreateNewAgent');
+  if (btnCreateNewAgent) {
+    btnCreateNewAgent.addEventListener('click', () => {
+      if (btnSaveAsNewAgent) btnSaveAsNewAgent.click();
     });
   }
 
@@ -939,7 +1019,7 @@
 
       saveCustomAgentsToStorage();
       loadAgentIntoEditor(newId, true);
-      showAgentFeedback('📋 Agente duplicado como novo! Modifique como desejar.', '#38bdf8');
+      showAgentFeedback('📋 Agente duplicado! Clique em Editar ou Salvar Como Novo.', '#38bdf8');
     });
   }
 
@@ -1170,7 +1250,15 @@
     }
 
     try {
-      const base64Audio = await directGeminiTTS(text, apiKey, selectedVoice);
+      // Obter voz e instruções do agente de teste selecionado em Laboratório
+      const labAgentSelect = document.getElementById('labAgentSelect');
+      const chosenAgentId = labAgentSelect ? labAgentSelect.value : selectedAgentId;
+      const agent = allAgents.find(a => a.id === chosenAgentId) || allAgents[0];
+
+      const voiceToUse = agent.preferredVoice || selectedVoice || 'Kore';
+      const instToUse = agent.narratorInstruction || currentSettings.narratorInstruction || 'Narre com tom natural:';
+
+      const base64Audio = await directGeminiTTS(text, apiKey, voiceToUse, instToUse);
       if (activeAudio) {
         activeAudio.pause();
         activeAudio = null;

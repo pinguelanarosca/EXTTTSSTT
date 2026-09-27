@@ -105,6 +105,8 @@
     ttsSpeed: 1.0,
     ttsVolume: 1.0,
     activeAgentId: 'default-natural',
+    activeNarratorAgentId: 'default-natural',
+    activeTranscriberAgentId: 'default-natural',
     customAgents: [],
     ttsModel: 'gemini-3.8-flash-lite-tts',
     sttModel: 'gemini-3.5-flash-lite',
@@ -854,48 +856,57 @@
   });
 
   function renderAgentDropdown() {
-    const select = document.getElementById('popupAgentSelect');
-    const descEl = document.getElementById('popupAgentDesc');
-    if (!select) return;
+    const narratorSelect = document.getElementById('popupNarratorAgentSelect');
+    const narratorDesc = document.getElementById('popupNarratorAgentDesc');
+    const transcriberSelect = document.getElementById('popupTranscriberAgentSelect');
+    const transcriberDesc = document.getElementById('popupTranscriberAgentDesc');
 
-    select.innerHTML = '';
+    if (!narratorSelect || !transcriberSelect) return;
 
-    const standardGroup = document.createElement('optgroup');
-    standardGroup.label = '🎭 Agentes Pré-Configurados';
-    const customGroup = document.createElement('optgroup');
-    customGroup.label = '✨ Meus Agentes Personalizados';
+    const populateSelect = (select, activeId, descEl) => {
+      select.innerHTML = '';
+      const standardGroup = document.createElement('optgroup');
+      standardGroup.label = '🎭 Agentes Pré-Configurados';
+      const customGroup = document.createElement('optgroup');
+      customGroup.label = '✨ Meus Agentes Personalizados';
 
-    allAgentsList.forEach(agent => {
-      const opt = document.createElement('option');
-      opt.value = agent.id;
-      opt.textContent = agent.name;
-      if (agent.isCustom) {
-        customGroup.appendChild(opt);
-      } else {
-        standardGroup.appendChild(opt);
+      allAgentsList.forEach(agent => {
+        const opt = document.createElement('option');
+        opt.value = agent.id;
+        opt.textContent = agent.name;
+        if (agent.isCustom) {
+          customGroup.appendChild(opt);
+        } else {
+          standardGroup.appendChild(opt);
+        }
+      });
+
+      select.appendChild(standardGroup);
+      if (customGroup.children.length > 0) {
+        select.appendChild(customGroup);
       }
-    });
 
-    select.appendChild(standardGroup);
-    if (customGroup.children.length > 0) {
-      select.appendChild(customGroup);
-    }
+      select.value = activeId;
+      const currentAgent = allAgentsList.find(a => a.id === activeId) || allAgentsList[0];
+      if (descEl && currentAgent) {
+        descEl.innerText = currentAgent.description || '';
+      }
+    };
 
-    const currentId = currentSettings.activeAgentId || 'default-natural';
-    select.value = currentId;
+    const activeNarratorId = currentSettings.activeNarratorAgentId || currentSettings.activeAgentId || 'default-natural';
+    const activeTranscriberId = currentSettings.activeTranscriberAgentId || currentSettings.activeAgentId || 'default-natural';
 
-    const currentAgent = allAgentsList.find(a => a.id === currentId) || allAgentsList[0];
-    if (descEl && currentAgent) {
-      descEl.innerText = currentAgent.description || '';
-    }
+    populateSelect(narratorSelect, activeNarratorId, narratorDesc);
+    populateSelect(transcriberSelect, activeTranscriberId, transcriberDesc);
 
-    select.addEventListener('change', (e) => {
+    narratorSelect.addEventListener('change', (e) => {
       const chosenId = e.target.value;
-      currentSettings.activeAgentId = chosenId;
+      currentSettings.activeNarratorAgentId = chosenId;
+      currentSettings.activeAgentId = chosenId; // Para retrocompatibilidade
       const agent = allAgentsList.find(a => a.id === chosenId);
 
       if (agent) {
-        if (descEl) descEl.innerText = agent.description || '';
+        if (narratorDesc) narratorDesc.innerText = agent.description || '';
         
         // Se o agente possui voz preferida, atualiza
         if (agent.preferredVoice) {
@@ -904,16 +915,41 @@
           if (vSel) vSel.value = agent.preferredVoice;
         }
 
+        const modelToUse = agent.ttsModel || currentSettings.ttsModel || 'gemini-3.8-flash-lite-tts';
+        const ttsModelSelect = document.getElementById('ttsModelSelect');
+        if (ttsModelSelect) ttsModelSelect.value = modelToUse;
+
         chrome.storage.sync.set({
+          activeNarratorAgentId: chosenId,
           activeAgentId: chosenId,
           ttsVoice: currentSettings.ttsVoice,
-          locutionInstruction: agent.locutionInstruction,
+          ttsModel: modelToUse,
           narratorInstruction: agent.narratorInstruction,
-          transcriberInstruction: agent.transcriberInstruction,
+          locutionInstruction: agent.locutionInstruction,
           visionInstruction: agent.visionInstruction
         });
 
         broadcastToActiveTab({ action: 'SET_ACTIVE_AGENT', agentId: chosenId, agent: agent });
+      }
+    });
+
+    transcriberSelect.addEventListener('change', (e) => {
+      const chosenId = e.target.value;
+      currentSettings.activeTranscriberAgentId = chosenId;
+      const agent = allAgentsList.find(a => a.id === chosenId);
+
+      if (agent) {
+        if (transcriberDesc) transcriberDesc.innerText = agent.description || '';
+
+        const sttModelToUse = agent.sttModel || currentSettings.sttModel || 'gemini-3.5-flash-lite';
+
+        chrome.storage.sync.set({
+          activeTranscriberAgentId: chosenId,
+          sttModel: sttModelToUse,
+          transcriberInstruction: agent.transcriberInstruction
+        });
+
+        broadcastToActiveTab({ action: 'SET_TRANSCRIBER_AGENT', agentId: chosenId, agent: agent });
       }
     });
   }
