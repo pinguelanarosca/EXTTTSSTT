@@ -1,0 +1,22 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+_env*
+!.env.example
+
+# Ignorar mídias e binários pesados para o GitHub
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.mp3
+*.wav
+*.zip
+icons/
+public/icons/
+

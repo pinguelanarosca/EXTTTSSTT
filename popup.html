@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>STT&TTS de Satiro</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 370px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #090d16;
+      color: #f1f5f9;
+      padding: 14px;
+      line-height: 1.4;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 10px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 15px;
+      color: #38bdf8;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 2px 7px;
+      border-radius: 9999px;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+    }
+
+    /* Abas do Popup */
+    .popup-tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .popup-tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .popup-tab-btn:hover { color: #fff; background: #1e293b; }
+    .popup-tab-btn.active {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* Botão Central de Gravação de Voz */
+    .mic-hero-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      border: 1px solid #38bdf8;
+      color: white;
+      padding: 12px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+      transition: all 0.15s;
+    }
+    .mic-hero-btn:hover { background: linear-gradient(135deg, #0369a1, #1d4ed8); }
+    .mic-hero-btn.recording {
+      background: linear-gradient(135deg, #dc2626, #991b1b);
+      border-color: #ef4444;
+      animation: pulse-red 1.2s infinite;
+    }
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+      70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    /* Caixa de Transcrição Dedicada */
+    .transcription-box-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+    .transcription-textarea {
+      width: 100%;
+      height: 90px;
+      padding: 8px;
+      background: #020617;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #f8fafc;
+      font-size: 12px;
+      line-height: 1.4;
+      resize: vertical;
+      outline: none;
+      font-family: inherit;
+    }
+    .transcription-textarea:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+    .trans-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      justify-content: flex-end;
+    }
+    .btn-trans-mini {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+    .btn-trans-mini:hover {
+      background: #334155;
+      color: #fff;
+    }
+    .btn-trans-mini.primary {
+      background: rgba(2, 132, 199, 0.2);
+      border-color: #0284c7;
+      color: #38bdf8;
+    }
+    .btn-trans-mini.primary:hover {
+      background: #0284c7;
+      color: #fff;
+    }
+
+    /* Console TTS */
+    .tts-box {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 6px;
+    }
+    .form-group {
+      margin-bottom: 8px;
+    }
+    label {
+      display: block;
+      font-size: 10px;
+      color: #94a3b8;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    select, input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 6px 8px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 12px;
+      outline: none;
+    }
+    select:focus, input:focus {
+      border-color: #38bdf8;
+    }
+    .speed-pills {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+    }
+    .speed-pill {
+      flex: 1;
+      min-width: 34px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      font-size: 10px;
+      font-family: monospace;
+      padding: 4px 0;
+      text-align: center;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s;
+    }
+    .speed-pill:hover {
+      background: #334155;
+      color: #fff;
+    }
+    .speed-pill.active {
+      background: #0284c7;
+      color: white;
+      border-color: #38bdf8;
+      font-weight: bold;
+    }
+
+    .tts-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .btn-action {
+      flex: 1;
+      padding: 7px;
+      border-radius: 6px;
+      border: none;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .btn-test { background: #0284c7; color: white; }
+    .btn-test:hover { background: #0369a1; }
+    .btn-stop { background: #dc2626; color: white; display: none; }
+    .btn-stop:hover { background: #b91c1c; }
+
+    /* Sub-abas de Histórico e Logs */
+    .sub-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 8px;
+      background: #0f172a;
+      padding: 3px;
+      border-radius: 6px;
+      border: 1px solid #1e293b;
+    }
+    .sub-tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 5px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sub-tab-btn.active {
+      background: #1e293b;
+      color: #38bdf8;
+    }
+
+    /* Accordion Expansível para Histórico e Logs */
+    .accordion-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+    .accordion-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .accordion-card:hover {
+      border-color: #334155;
+    }
+    .accordion-header {
+      padding: 8px 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+      gap: 6px;
+    }
+    .accordion-header:hover {
+      background: rgba(30, 41, 59, 0.4);
+    }
+    .accordion-chevron {
+      font-size: 9px;
+      color: #64748b;
+      transition: transform 0.2s ease;
+    }
+    .accordion-card.open .accordion-chevron {
+      transform: rotate(90deg);
+      color: #38bdf8;
+    }
+    .accordion-body {
+      display: none;
+      padding: 8px 10px 10px 10px;
+      background: #090d16;
+      border-top: 1px solid #1e293b;
+      font-size: 11px;
+    }
+    .accordion-card.open .accordion-body {
+      display: block;
+    }
+
+    /* Logs & Badges */
+    .badge-pill {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .badge-pill.success { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-pill.error { background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-pill.info { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+    /* Botões Principais */
+    .btn-full {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+      border: none;
+      margin-bottom: 6px;
+    }
+    .btn-web {
+      background: #2563eb;
+      color: white;
+    }
+    .btn-web:hover { background: #1d4ed8; }
+    .btn-opt {
+      background: #1e293b;
+      color: #cbd5e1;
+      border: 1px solid #334155;
+    }
+    .btn-opt:hover { background: #334155; color: white; }
+
+    .toast-msg {
+      font-size: 11px;
+      text-align: center;
+      color: #34d399;
+      margin-top: 6px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <span>🎙️</span>
+      <span>STT&TTS de Satiro</span>
+    </div>
+    <div id="headerStatusBadge" class="status-badge">
+      <span class="status-dot"></span>
+      <span id="headerStatus">Modo Direto</span>
+    </div>
+  </div>
+
+  <div class="popup-tabs">
+    <button class="popup-tab-btn active" data-tab="tab-control">🎛️ Voz &amp; Ações</button>
+    <button class="popup-tab-btn" data-tab="tab-history">📜 Logs &amp; API (<span id="histCount">0</span>)</button>
+    <button class="popup-tab-btn" data-tab="tab-config">⚙️ Chave</button>
+    <button class="popup-tab-btn" data-tab="tab-update">🔄 Atualização</button>
+  </div>
+
+  <!-- ABA 1: CONTROLE & VOZ -->
+  <div id="tab-control" class="tab-pane active">
+    <!-- Botão de Gravação Imediata com Microfone -->
+    <button id="directRecordBtn" class="mic-hero-btn">
+      <span id="micIcon">🎙️</span>
+      <span id="micLabel">Gravar Fala no Microfone</span>
+      <span id="micTimer" style="display:none; font-family:monospace; margin-left:auto;">0s</span>
+    </button>
+    <div id="micStatusSub" style="font-size:10px; color:#94a3b8; text-align:center; margin-top:-4px; margin-bottom:8px;">
+      Clique para ditar e transcrever via Gemini STT
+    </div>
+
+    <!-- Caixa de Transcrição Dedicada -->
+    <div class="transcription-box-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <label style="margin-bottom:0; color:#38bdf8;">📝 Transcrição da Fala</label>
+        <span id="transCharCount" style="font-size:10px; color:#64748b;">0 caracteres</span>
+      </div>
+      <textarea id="popupTranscribedBox" class="transcription-textarea" placeholder="O áudio gravado no microfone será transcrito aqui independentemente da página em que você estiver..."></textarea>
+      <div class="trans-actions">
+        <button id="clearPopupTransBtn" class="btn-trans-mini" title="Limpar texto">🗑️ Limpar</button>
+        <button id="playPopupTransBtn" class="btn-trans-mini primary" title="Ouvir texto com voz neural">🔊 Ouvir TTS</button>
+        <button id="copyPopupTransBtn" class="btn-trans-mini" title="Copiar texto para área de transferência">📋 Copiar</button>
+      </div>
+    </div>
+
+    <!-- Console de Controle TTS -->
+    <div class="tts-box">
+      <div class="form-group">
+        <label>Voz Neural Gemini</label>
+        <select id="voiceSelect">
+          <option value="Kore">Kore (Equilibrada e Humana - Padrão)</option>
+          <option value="Puck">Puck (Dinâmica e Jovem)</option>
+          <option value="Charon">Charon (Grave e Serena)</option>
+          <option value="Fenrir">Fenrir (Forte e Firme)</option>
+          <option value="Zephyr">Zephyr (Suave e Calma)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <label style="margin-bottom:0;">Velocidade de Reprodução</label>
+          <span id="popupSpeedBadge" style="font-family:monospace; font-size:11px; color:#38bdf8; font-weight:bold;">1.0x</span>
+        </div>
+        <div class="speed-pills">
+          <div class="speed-pill" data-speed="0.5">0.5x</div>
+          <div class="speed-pill" data-speed="0.75">0.75x</div>
+          <div class="speed-pill active" data-speed="1.0">1.0x</div>
+          <div class="speed-pill" data-speed="1.25">1.25x</div>
+          <div class="speed-pill" data-speed="1.5">1.5x</div>
+          <div class="speed-pill" data-speed="1.75">1.75x</div>
+          <div class="speed-pill" data-speed="2.0">2.0x</div>
+          <div class="speed-pill" data-speed="2.5">2.5x</div>
+        </div>
+      </div>
+
+      <div class="tts-actions">
+        <button id="testTtsBtn" class="btn-action btn-test">▶️ Testar Voz com Gemini</button>
+        <button id="stopTtsBtn" class="btn-action btn-stop">⏹️ Parar Áudio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA 2: HISTÓRICO & TELEMETRIA API COM ABAS EXPANSÍVEIS -->
+  <div id="tab-history" class="tab-pane">
+    <div class="sub-tabs">
+      <button class="sub-tab-btn active" id="subTabHistoryBtn">🎙️ Transcrições</button>
+      <button class="sub-tab-btn" id="subTabApiLogsBtn">⚡ Telemetria API Gemini</button>
+    </div>
+
+    <!-- Lista de Transcrições em Accordion -->
+    <div id="historyViewContainer">
+      <div id="historyList" class="accordion-list">
+        <div style="text-align:center; padding:24px 8px; color:#64748b; font-size:11px;">
+          Nenhuma fala gravada ainda.<br>Pressione Pause ou use o microfone acima para transcrever.
+        </div>
+      </div>
+    </div>
+
+    <!-- Lista de Logs de API em Accordion -->
+    <div id="apiLogsViewContainer" style="display:none;">
+      <div id="apiLogsList" class="accordion-list">
+        <div style="text-align:center; padding:24px 8px; color:#64748b; font-size:11px;">
+          Nenhuma requisição de API registrada ainda.<br>Faça uma narração ou transcrição para ver os logs.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA 3: CONEXÃO & CONFIGURAÇÃO -->
+  <div id="tab-config" class="tab-pane">
+    <div style="background:#0f172a; border:1px solid #1e293b; border-radius:10px; padding:10px; margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <label style="margin-bottom:0; font-weight:700; color:#38bdf8; font-size:11px;">🔑 Rotação de Chaves e Cotas (Gemini)</label>
+        <span style="font-size:9px; background:#0284c7; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">9 Chaves Max</span>
+      </div>
+      <p style="font-size:10px; color:#94a3b8; margin-bottom:8px; line-height:1.4;">
+        As chaves rotacionam sozinhas. Limite de 10 chamadas diárias por modelo, reiniciando diariamente às 4:00 AM de Brasília.
+      </p>
+
+      <div id="popupKeysList" style="display:flex; flex-direction:column; gap:6px; max-height:210px; overflow-y:auto; margin-bottom:10px; padding-right:2px;">
+        <!-- Injetado via JS com barra de progresso / contadores de 0/10 para os dois modelos de cada chave -->
+      </div>
+
+      <button id="btnQuickResetCounters" class="btn-full" style="background:#dc2626; color:white; font-size:11px; margin-bottom:4px; border:none; border-radius:8px;">
+        <span>⚡ Resetar Contadores Manualmente</span>
+      </button>
+      <div id="apiKeyValidationMsg" style="font-size:10px; text-align:center; color:#94a3b8; margin-top:4px;">
+        Utilize a Central de Opções para inserir/editar as 9 chaves.
+      </div>
+    </div>
+
+    <button id="openOptionsBtn" class="btn-full btn-opt">
+      <span>⚙️ Central de Opções Completa</span>
+    </button>
+
+    <button id="popupAuthMicBtn" class="btn-full btn-opt" style="margin-top:6px; font-size:11px; background:#064e3b; color:#a7f3d0; border-color:#059669;">
+      <span>🎙️ Autorizar Microfone no Chrome</span>
+    </button>
+
+    <div id="toastSaved" class="toast-msg">✓ Configurações salvas!</div>
+  </div>
+
+  <!-- ABA 4: ATUALIZAÇÃO VIA GITHUB -->
+  <div id="tab-update" class="tab-pane">
+    <div style="background:#0f172a; border:1px solid #1e293b; border-radius:10px; padding:10px; margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <span style="font-size:11px; font-weight:700; color:#cbd5e1;">Repositório GitHub</span>
+        <span id="popupGitBadge" style="font-size:9px; background:#1e293b; color:#93c5fd; padding:1px 6px; border-radius:4px; font-family:monospace;">main</span>
+      </div>
+      <div style="font-size:10px; color:#94a3b8; line-height:1.5;">
+        <div>Commit: <strong id="popupGitCommit" style="color:#38bdf8; font-family:monospace;">Consultar status</strong></div>
+        <div>Árvore Local: <strong id="popupGitDirty" style="color:#34d399;">Limpa</strong></div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;">
+      <button id="popupCheckGitBtn" class="btn-full btn-opt" style="margin-bottom:0; font-size:11px;">
+        <span>🔍 1. Verificar Status Git</span>
+      </button>
+
+      <button id="popupPullGitBtn" class="btn-full btn-web" style="margin-bottom:0; font-size:11px;">
+        <span>⬇️ 2. Baixar &amp; Instalar do GitHub</span>
+      </button>
+
+      <button id="popupReloadExtBtn" class="btn-full" style="background:#059669; color:white; margin-bottom:0; font-size:11px;">
+        <span>🔄 3. Recarregar Extensão</span>
+      </button>
+
+      <button id="popupRestartChromeBtn" class="btn-full" style="background:#b45309; color:white; margin-bottom:0; font-size:11px;">
+        <span>🚀 4. Reiniciar Google Chrome</span>
+      </button>
+    </div>
+
+    <div id="popupUpdateLogs" style="background:#020617; border:1px solid #1e293b; border-radius:6px; padding:6px; font-family:monospace; font-size:9px; color:#94a3b8; max-height:85px; overflow-y:auto; line-height:1.3;">
+      [$] Pronto para atualizar via GitHub.
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
