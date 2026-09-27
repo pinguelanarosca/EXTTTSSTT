@@ -431,8 +431,8 @@
 
         <nav class="sidebar-nav">
           <button class="tab-btn active" data-tab="tab-lab">⚡ Laboratório</button>
-          <button class="tab-btn" data-tab="tab-agents">🎭 Agentes &amp; API</button>
-          <button class="tab-btn" data-tab="tab-mixer">🎛️ Mixer Master DSP</button>
+          <button class="tab-btn" data-tab="tab-mixer">🎛️ Mixer &amp; Personalização</button>
+          <button class="tab-btn" data-tab="tab-agents">🤖 Modelos &amp; Chaves API</button>
           <button class="tab-btn" data-tab="tab-history">🎙️ Histórico STT</button>
           <button class="tab-btn" data-tab="tab-instructions">📑 Guia de Atalhos</button>
           <button class="tab-btn" data-tab="tab-github">🐙 Sincronização Git</button>
@@ -576,25 +576,28 @@
             <span id="pingResult" style="font-size: 12px; color: #34d399; font-weight: 600;"></span>
           </div>
         </div>
+      </div>
 
+      <!-- ABA 2: MIXER TTS & PERSONALIZAÇÃO COMPLETA -->
+      <div id="tab-mixer" class="tab-content">
         <!-- Gerenciador de Agentes & Instruções de Comportamento -->
         <div class="card" id="agentManagerCard">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-            <div class="card-title" style="margin-bottom:0;">🎭 Gerenciador de Agentes &amp; Modificadores</div>
+            <div class="card-title" style="margin-bottom:0;">🎭 Gerenciador de Agentes &amp; Personalização</div>
             <div style="display:flex; gap:8px;">
               <button id="btnCreateNewAgent" class="btn" style="padding:6px 12px; font-size:11px; background:#0284c7;">➕ Criar Novo Agente</button>
               <button id="btnResetAgentsDefault" class="btn btn-secondary" style="padding:6px 10px; font-size:11px;">🔄 Restaurar Padrões</button>
             </div>
           </div>
           <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">
-            Selecione um agente pré-configurado ou crie novos agentes com modificadores comportamentais exclusivos. As regras e modelos de IA do Gemini permanecem intactos, aplicando apenas a camada de personalização desejada.
+            Crie, personalize e salve agentes exclusivos. Ao salvar, o agente fica imediatamente disponível nos seletores de síntese de voz (TTS) e transcrição de áudio (STT), aplicando suas diretrizes comportamentais e estilo de fala aos modelos neurais.
           </p>
 
-          <!-- Seletor de Agente Ativo na Central -->
+          <!-- Seletor de Agente Ativo no Mixer -->
           <div style="background:rgba(15, 23, 42, 0.8); border:1px solid #334155; border-radius:8px; padding:12px; margin-bottom:16px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
               <label for="agentSelectOptions" style="font-weight:700; color:#38bdf8; font-size:13px; margin:0;">
-                ⭐ Agente Ativo Selecionado:
+                ⭐ Agente Selecionado para Edição / Uso:
               </label>
               <span id="agentActiveBadge" style="font-size:10px; background:#0284c7; color:#fff; padding:2px 8px; border-radius:4px; font-weight:700;">EM USO</span>
             </div>
@@ -658,10 +661,7 @@
             <div id="agentActionFeedback" style="font-size:12px; font-weight:600; min-height:16px;"></div>
           </div>
         </div>
-      </div>
 
-      <!-- ABA 3: MIXER TTS COMPLETO & SPECTRUM DSP -->
-      <div id="tab-mixer" class="tab-content">
         <!-- Monitor DSP & Visualizador de Espectro FFT -->
         <div class="dsp-card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
