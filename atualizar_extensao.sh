@@ -12,9 +12,9 @@ else
     echo "[2/3] Pasta não é um repositório Git local. Baixando arquivos atualizados do servidor..."
     
     if command -v curl &> /dev/null; then
-        curl -L "https://github.com/pinguelanarosca/FalaGemini/archive/refs/heads/main.zip" -o update_temp.zip
+        curl -L "https://github.com/pinguelanarosca/EXTTTSSTT/archive/refs/heads/main.zip" -o update_temp.zip
     elif command -v wget &> /dev/null; then
-        wget "https://github.com/pinguelanarosca/FalaGemini/archive/refs/heads/main.zip" -O update_temp.zip
+        wget "https://github.com/pinguelanarosca/EXTTTSSTT/archive/refs/heads/main.zip" -O update_temp.zip
     fi
 
     if [ -f "update_temp.zip" ]; then
@@ -27,7 +27,7 @@ else
             echo "❌ Erro ao extrair o arquivo ZIP (arquivo corrompido ou repositório indisponível)."
             echo "Tentando instalar diretamente via Git Clone..."
             if command -v git &> /dev/null; then
-                git clone https://github.com/pinguelanarosca/FalaGemini.git temp_clone && \
+                git clone https://github.com/pinguelanarosca/EXTTTSSTT.git temp_clone && \
                 cp -r temp_clone/* . && \
                 rm -rf temp_clone && \
                 echo "✓ Arquivos sincronizados com sucesso via Git Clone!"

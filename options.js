@@ -989,9 +989,9 @@
 
   if (optCheckGitBtn) {
     optCheckGitBtn.addEventListener('click', async () => {
-      addOptGitLog('Verificando status do repositório no GitHub (pinguelanarosca/FalaGemini)...');
+      addOptGitLog('Verificando status do repositório no GitHub (pinguelanarosca/EXTTTSSTT)...');
       try {
-        const res = await fetch('https://api.github.com/repos/pinguelanarosca/FalaGemini/commits/main');
+        const res = await fetch('https://api.github.com/repos/pinguelanarosca/EXTTTSSTT/commits/main');
         if (res.ok) {
           const data = await res.json();
           addOptGitLog(`✓ Último commit no GitHub: ${data.sha.substring(0, 7)} - "${data.commit.message}"`);
@@ -1006,8 +1006,8 @@
 
   if (optPullGitBtn) {
     optPullGitBtn.addEventListener('click', () => {
-      addOptGitLog('Iniciando download do pacote ZIP atualizado de pinguelanarosca/FalaGemini...');
-      window.open('https://github.com/pinguelanarosca/FalaGemini/archive/refs/heads/main.zip', '_blank');
+      addOptGitLog('Iniciando download do pacote ZIP atualizado de pinguelanarosca/EXTTTSSTT...');
+      window.open('https://github.com/pinguelanarosca/EXTTTSSTT/archive/refs/heads/main.zip', '_blank');
       addOptGitLog('✓ Download iniciado no navegador.');
     });
   }

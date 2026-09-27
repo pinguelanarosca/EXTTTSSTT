@@ -1262,9 +1262,10 @@
   // Consulta direta à API Pública do GitHub com detecção inteligente de repositório e branch
   async function fetchDirectGitHubStatus() {
     const candidateRepos = [
+      'pinguelanarosca/EXTTTSSTT',
+      'pinguelanarosca/FalaGemini',
       'pinguelanarosca/SatiroSTT-TTS',
-      'pinguelanarosca/STT-TTSByAlee',
-      'pinguelanarosca/FalaGemini'
+      'pinguelanarosca/STT-TTSByAlee'
     ];
     const candidateBranches = ['main', 'master'];
 
@@ -1314,7 +1315,7 @@
     if (!popupCheckGitBtn) return;
     popupCheckGitBtn.disabled = true;
     popupCheckGitBtn.innerText = 'Consultando...';
-    addPopupUpdateLog('[$] Consultando status no GitHub (pinguelanarosca/STT-TTSByAlee)...');
+    addPopupUpdateLog('[$] Consultando status no GitHub (pinguelanarosca/EXTTTSSTT)...');
 
     try {
       let data = null;
@@ -1383,7 +1384,7 @@
         const res = await fetch(sUrl + '/api/git/pull', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({ repoUrl: 'https://github.com/pinguelanarosca/FalaGemini', branch: 'main', force: false, runInstall: true })
+          body: JSON.stringify({ repoUrl: 'https://github.com/pinguelanarosca/EXTTTSSTT', branch: 'main', force: false, runInstall: true })
         });
         const ct = res.headers.get('content-type') || '';
         if (res.ok && ct.includes('application/json')) {
@@ -1404,7 +1405,7 @@
 
       // 2. Se não estiver rodando servidor local, abrir download direto do ZIP do GitHub
       if (!pullSucceeded) {
-        const repoZipUrl = 'https://github.com/pinguelanarosca/FalaGemini/archive/refs/heads/main.zip';
+        const repoZipUrl = 'https://github.com/pinguelanarosca/EXTTTSSTT/archive/refs/heads/main.zip';
         addPopupUpdateLog('📥 Baixando pacote ZIP atualizado do repositório GitHub...');
         chrome.tabs.create({ url: repoZipUrl });
         addPopupUpdateLog('✓ Download do arquivo ZIP iniciado!');

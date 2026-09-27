@@ -19,7 +19,7 @@ if exist ".git" (
     )
 ) else (
     echo [2/3] Pasta nao e um repositorio Git. Baixando arquivos atualizados do servidor via PowerShell...
-    powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $u = 'https://github.com/pinguelanarosca/FalaGemini/archive/refs/heads/main.zip'; Write-Host ('Baixando ' + $u + '...'); Invoke-WebRequest -Uri $u -OutFile 'update_temp.zip'; Expand-Archive -Path 'update_temp.zip' -DestinationPath '.' -Force; Remove-Item 'update_temp.zip' -Force; Write-Host '✓ Arquivos substituidos com sucesso!'"
+    powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $u = 'https://github.com/pinguelanarosca/EXTTTSSTT/archive/refs/heads/main.zip'; Write-Host ('Baixando ' + $u + '...'); Invoke-WebRequest -Uri $u -OutFile 'update_temp.zip'; Expand-Archive -Path 'update_temp.zip' -DestinationPath '.' -Force; Remove-Item 'update_temp.zip' -Force; Write-Host '✓ Arquivos substituidos com sucesso!'"
 )
 
 echo.
