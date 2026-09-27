@@ -162,17 +162,36 @@
         for (let key in changes) {
           settings[key] = changes[key].newValue;
         }
+
+        // Se o balão (HUD) de narração estiver aberto, atualiza suas informações em tempo real
+        const hud = document.getElementById('vocallens-narration-hud');
+        if (hud && hud.style.display !== 'none') {
+          const titleEl = hud.querySelector('.vocallens-nhud-title');
+          if (titleEl) {
+            titleEl.innerText = `Narrando com Gemini (${settings.ttsVoice || 'Kore'})`;
+          }
+          const agentBadge = hud.querySelector('.vocallens-agent-badge');
+          if (agentBadge) {
+            const activeAgent = getActiveAgent();
+            agentBadge.innerText = activeAgent.name.replace(/^(🎙️|📻|🎓|⚡|🧘|💼|💬|🧙|✨)\s*/, '');
+          }
+        }
+
         // Aplica velocidade e volume imediatamente ao player ativo
-        if (changes.ttsSpeed && activeAudioPlayer) {
+        if (changes.ttsSpeed) {
           const newSpd = parseFloat(changes.ttsSpeed.newValue || 1.0);
-          activeAudioPlayer.playbackRate = newSpd;
-          activeAudioPlayer.defaultPlaybackRate = newSpd;
-          activeAudioPlayer.preservesPitch = true;
+          if (activeAudioPlayer) {
+            activeAudioPlayer.playbackRate = newSpd;
+            activeAudioPlayer.defaultPlaybackRate = newSpd;
+            activeAudioPlayer.preservesPitch = true;
+          }
           updateNarrationHudSpeedUI(newSpd);
         }
-        if (changes.ttsVolume && activeAudioPlayer) {
+        if (changes.ttsVolume) {
           const newVol = parseFloat(changes.ttsVolume.newValue ?? 1.0);
-          activeAudioPlayer.volume = newVol;
+          if (activeAudioPlayer) {
+            activeAudioPlayer.volume = newVol;
+          }
           updateNarrationHudVolumeUI(newVol);
         }
       }
@@ -865,6 +884,12 @@
         audio.playbackRate = Number(settings.ttsSpeed || 1.0);
         audio.volume = Number(settings.ttsVolume ?? 1.0);
       });
+      audio.addEventListener('ratechange', () => {
+        const expected = Number(settings.ttsSpeed || 1.0);
+        if (Math.abs(audio.playbackRate - expected) > 0.01) {
+          audio.playbackRate = expected;
+        }
+      });
 
       // Acompanhamento palavra por palavra em tempo real
       audio.addEventListener('timeupdate', () => {
@@ -1467,6 +1492,58 @@
         const sel = request.text || window.getSelection()?.toString().trim();
         narrateSelection(sel);
         sendResponse({ success: true });
+        return true;
+      }
+
+      if (request.action === 'SET_ACTIVE_AGENT') {
+        settings.activeAgentId = request.agentId;
+        if (request.agent) {
+          settings.locutionInstruction = request.agent.locutionInstruction;
+          settings.narratorInstruction = request.agent.narratorInstruction;
+          settings.transcriberInstruction = request.agent.transcriberInstruction;
+          settings.visionInstruction = request.agent.visionInstruction;
+          if (request.agent.preferredVoice) {
+            settings.ttsVoice = request.agent.preferredVoice;
+          }
+        }
+        // Atualiza UI do balão (HUD) se estiver aberto
+        const hud = document.getElementById('vocallens-narration-hud');
+        if (hud && hud.style.display !== 'none') {
+          const titleEl = hud.querySelector('.vocallens-nhud-title');
+          if (titleEl) {
+            titleEl.innerText = `Narrando com Gemini (${settings.ttsVoice || 'Kore'})`;
+          }
+          const agentBadge = hud.querySelector('.vocallens-agent-badge');
+          if (agentBadge && request.agent) {
+            agentBadge.innerText = request.agent.name.replace(/^(🎙️|📻|🎓|⚡|🧘|💼|💬|🧙|✨)\s*/, '');
+          }
+        }
+        sendResponse({ success: true });
+        return true;
+      }
+
+      if (request.action === 'SET_AUDIO_VOLUME') {
+        const vol = parseFloat(request.volume);
+        settings.ttsVolume = vol;
+        if (activeAudioPlayer) {
+          activeAudioPlayer.volume = vol;
+        }
+        updateNarrationHudVolumeUI(vol);
+        sendResponse({ success: true });
+        return true;
+      }
+
+      if (request.action === 'SET_AUDIO_SPEED') {
+        const spd = parseFloat(request.speed);
+        settings.ttsSpeed = spd;
+        if (activeAudioPlayer) {
+          activeAudioPlayer.playbackRate = spd;
+          activeAudioPlayer.defaultPlaybackRate = spd;
+          activeAudioPlayer.preservesPitch = true;
+        }
+        updateNarrationHudSpeedUI(spd);
+        sendResponse({ success: true });
+        return true;
       }
     });
   }

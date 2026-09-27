@@ -698,6 +698,36 @@
       });
     }
 
+    // Listener de cliques nos botões de velocidade (speed-pill) no Popup
+    document.querySelectorAll('.speed-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const sp = parseFloat(pill.dataset.speed);
+        currentSettings.ttsSpeed = sp;
+
+        if (spBadge) spBadge.innerText = sp + 'x';
+
+        document.querySelectorAll('.speed-pill').forEach(p => {
+          if (Math.abs(parseFloat(p.dataset.speed) - sp) < 0.05) {
+            p.classList.add('active');
+          } else {
+            p.classList.remove('active');
+          }
+        });
+
+        // Salva configuração em tempo real no Chrome Sync
+        chrome.storage.sync.set({ ttsSpeed: sp });
+
+        // Atualiza áudio em reprodução local de teste se houver
+        if (activeAudio) {
+          activeAudio.playbackRate = sp;
+          activeAudio.defaultPlaybackRate = sp;
+        }
+
+        // Transmite para a página ativa para atualizar o balão/player flutuante instantaneamente
+        broadcastToActiveTab({ action: 'SET_AUDIO_SPEED', speed: sp });
+      });
+    });
+
     // Link para Gerenciar Agentes nas Opções
     const openAgentsLink = document.getElementById('openOptionsAgentsLink');
     if (openAgentsLink) {
