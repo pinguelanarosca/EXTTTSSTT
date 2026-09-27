@@ -577,28 +577,85 @@
           </div>
         </div>
 
-        <!-- Instruções das 4 Modalidades -->
-        <div class="card">
-          <div class="card-title">🎭 Agentes &amp; Instruções de Comportamento</div>
+        <!-- Gerenciador de Agentes & Instruções de Comportamento -->
+        <div class="card" id="agentManagerCard">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+            <div class="card-title" style="margin-bottom:0;">🎭 Gerenciador de Agentes &amp; Modificadores</div>
+            <div style="display:flex; gap:8px;">
+              <button id="btnCreateNewAgent" class="btn" style="padding:6px 12px; font-size:11px; background:#0284c7;">➕ Criar Novo Agente</button>
+              <button id="btnResetAgentsDefault" class="btn btn-secondary" style="padding:6px 10px; font-size:11px;">🔄 Restaurar Padrões</button>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">
+            Selecione um agente pré-configurado ou crie novos agentes com modificadores comportamentais exclusivos. As regras e modelos de IA do Gemini permanecem intactos, aplicando apenas a camada de personalização desejada.
+          </p>
 
-          <div class="input-group">
-            <label for="locutionInstruction">Modalidade 1: Locução (Voz / Anúncios / Destaques)</label>
-            <textarea id="locutionInstruction" rows="2" placeholder="Instruções para locução dinâmica..."></textarea>
+          <!-- Seletor de Agente Ativo na Central -->
+          <div style="background:rgba(15, 23, 42, 0.8); border:1px solid #334155; border-radius:8px; padding:12px; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+              <label for="agentSelectOptions" style="font-weight:700; color:#38bdf8; font-size:13px; margin:0;">
+                ⭐ Agente Ativo Selecionado:
+              </label>
+              <span id="agentActiveBadge" style="font-size:10px; background:#0284c7; color:#fff; padding:2px 8px; border-radius:4px; font-weight:700;">EM USO</span>
+            </div>
+            <select id="agentSelectOptions" style="width:100%; font-size:13px; font-weight:600; padding:10px; border-color:#0284c7;">
+              <!-- Populado dinamicamente -->
+            </select>
           </div>
 
-          <div class="input-group">
-            <label for="narratorInstruction">Modalidade 2: Instruções Gerais para o Narrador (Ctrl+B)</label>
-            <textarea id="narratorInstruction" rows="2" placeholder="Instruções comportamentais para o narrador de textos..."></textarea>
-          </div>
+          <!-- Formulário de Edição do Agente Selecionado -->
+          <div id="agentEditorPanel" style="display:flex; flex-direction:column; gap:12px; border-top:1px solid #1e293b; padding-top:16px;">
+            <div class="grid-2">
+              <div class="input-group">
+                <label for="agentNameInput">Nome do Agente / Personalidade</label>
+                <input type="text" id="agentNameInput" placeholder="Ex: Locutor Dinâmico, Professor Didático..." />
+              </div>
+              <div class="input-group">
+                <label for="agentVoiceSelect">Voz Neural Preferencial do Agente</label>
+                <select id="agentVoiceSelect">
+                  <option value="Kore">Kore (Equilibrada e Humana - Padrão)</option>
+                  <option value="Puck">Puck (Dinâmica e Jovem)</option>
+                  <option value="Charon">Charon (Grave e Serena)</option>
+                  <option value="Fenrir">Fenrir (Forte e Firme)</option>
+                  <option value="Zephyr">Zephyr (Suave e Calma)</option>
+                </select>
+              </div>
+            </div>
 
-          <div class="input-group">
-            <label for="transcriberInstruction">Modalidade 3: Instruções para o Transcritor (STT Pause/Break)</label>
-            <textarea id="transcriberInstruction" rows="2" placeholder="Instruções para pontuação e fidelidade da transcrição..."></textarea>
-          </div>
+            <div class="input-group">
+              <label for="agentDescInput">Descrição Curta / Finalidade</label>
+              <input type="text" id="agentDescInput" placeholder="Ex: Voz dinâmica com ênfase comercial para anúncios e podcasts" />
+            </div>
 
-          <div class="input-group">
-            <label for="visionInstruction">Modalidade 4: Instruções para Recorte de Tela (Google Lens OCR)</label>
-            <textarea id="visionInstruction" rows="2" placeholder="Instruções para leitura e análise de capturas de tela..."></textarea>
+            <div class="input-group">
+              <label for="locutionInstruction">Modalidade 1: Locução (Voz / Anúncios / Destaques)</label>
+              <textarea id="locutionInstruction" rows="2" placeholder="Instruções para locução dinâmica..."></textarea>
+            </div>
+
+            <div class="input-group">
+              <label for="narratorInstruction">Modalidade 2: Instruções Gerais para o Narrador (Ctrl+B)</label>
+              <textarea id="narratorInstruction" rows="2" placeholder="Instruções comportamentais para o narrador de textos..."></textarea>
+            </div>
+
+            <div class="input-group">
+              <label for="transcriberInstruction">Modalidade 3: Instruções para o Transcritor (STT Pause/Break)</label>
+              <textarea id="transcriberInstruction" rows="2" placeholder="Instruções para pontuação e fidelidade da transcrição..."></textarea>
+            </div>
+
+            <div class="input-group">
+              <label for="visionInstruction">Modalidade 4: Instruções para Recorte de Tela (Google Lens OCR)</label>
+              <textarea id="visionInstruction" rows="2" placeholder="Instruções para leitura e análise de capturas de tela..."></textarea>
+            </div>
+
+            <!-- Botões de Ação do Agente -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px;">
+              <div style="display:flex; gap:8px;">
+                <button id="btnSaveAgent" class="btn" style="background:#059669;">💾 Salvar Alterações do Agente</button>
+                <button id="btnDuplicateAgent" class="btn btn-secondary">📋 Duplicar como Novo</button>
+              </div>
+              <button id="btnDeleteAgent" class="btn btn-danger" style="display:none;">🗑️ Excluir Agente</button>
+            </div>
+            <div id="agentActionFeedback" style="font-size:12px; font-weight:600; min-height:16px;"></div>
           </div>
         </div>
       </div>

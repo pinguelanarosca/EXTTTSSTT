@@ -28,6 +28,89 @@
   let sessionTranscriptions = [];
   let apiLogs = [];
 
+  const DEFAULT_AGENTS = [
+    {
+      id: 'default-natural',
+      name: '🎙️ Padrão / Natural',
+      description: 'Voz equilibrada com entonação humana natural e ritmo balanceado.',
+      preferredVoice: 'Kore',
+      locutionInstruction: 'Você é um locutor profissional e envolvente. Dite os textos com ritmo dinâmico e tom natural.',
+      narratorInstruction: 'Você é um narrador natural e expressivo. Leia o texto com dicção impecável, ritmo equilibrado e entonação humana.',
+      transcriberInstruction: 'Transcreva com fidelidade absoluta o áudio recebido. Aplique pontuação correta e remova vícios de linguagem comuns.',
+      visionInstruction: 'Analise detalhadamente a imagem capturada da tela com o Google Lens. Se contiver texto, transcreva ou leia-o com máxima precisão.'
+    },
+    {
+      id: 'radio-host',
+      name: '📻 Locutor Profissional & Rádio',
+      description: 'Projeção forte, entonação comercial enérgica e ritmo dinâmico.',
+      preferredVoice: 'Fenrir',
+      locutionInstruction: 'Fale com a energia e cadência de um grande locutor de rádio e TV: voz encorpada, pausas enfáticas e entusiasmo cativante.',
+      narratorInstruction: 'Leia como um apresentador de notícias de destaque: tom firme, projeção limpa e excelente ritmo.',
+      transcriberInstruction: 'Transcreva destacando com pontuação expressiva e clareza formal.',
+      visionInstruction: 'Descreva a imagem em formato de manchete e resumo vibrante dos pontos principais.'
+    },
+    {
+      id: 'teacher-didactic',
+      name: '🎓 Professor / Didático',
+      description: 'Ritmo pausado, ênfase pedagógica e clareza explicativa.',
+      preferredVoice: 'Charon',
+      locutionInstruction: 'Explique de forma didática e acolhedora, como um professor paciente explicando conceitos importantes.',
+      narratorInstruction: 'Leia em ritmo pausado e articulado, dando ênfase nas palavras-chave e facilitando o aprendizado.',
+      transcriberInstruction: 'Transcreva preservando termos técnicos e estruturando com pontuação impecável.',
+      visionInstruction: 'Analise e explique passo a passo diagramas, códigos e textos presentes na captura.'
+    },
+    {
+      id: 'fast-summary',
+      name: '⚡ Resumidor Rápido & Direto',
+      description: 'Fala rápida e objetiva focada na essência do conteúdo.',
+      preferredVoice: 'Puck',
+      locutionInstruction: 'Seja direto ao ponto, com cadência ágil e foco nas informações mais relevantes.',
+      narratorInstruction: 'Leia os pontos principais de forma ágil, fluida e concisa.',
+      transcriberInstruction: 'Transcreva exatamente o essencial com máxima precisão.',
+      visionInstruction: 'Sintetize imediatamente os tópicos centrais da tela capturada.'
+    },
+    {
+      id: 'calm-zen',
+      name: '🧘 Narrador Zen & Meditativo',
+      description: 'Voz suave, ritmo lento e calmo, tom reconfortante.',
+      preferredVoice: 'Zephyr',
+      locutionInstruction: 'Fale com calma, tranquilidade e suavidade, trazendo paz e relaxamento para o ouvinte.',
+      narratorInstruction: 'Leia com suavidade e serenidade, mantendo pausas harmoniosas e tom acolhedor.',
+      transcriberInstruction: 'Transcreva com precisão e tranquilidade.',
+      visionInstruction: 'Descreva o ambiente visual com sutileza e serenidade.'
+    },
+    {
+      id: 'executive-formal',
+      name: '💼 Executivo & Corporativo',
+      description: 'Linguagem polida, postura corporativa séria e tom seguro.',
+      preferredVoice: 'Fenrir',
+      locutionInstruction: 'Adote uma postura executiva de alto nível: vocabulário refinado, tom seguro e direto aos resultados.',
+      narratorInstruction: 'Leia relatórios e documentos corporativos com seriedade, clareza e autoridade profissional.',
+      transcriberInstruction: 'Transcreva termos de negócios, siglas e números com rigor absoluto.',
+      visionInstruction: 'Analise métricas, tabelas e gráficos da tela com foco em decisões de negócios.'
+    },
+    {
+      id: 'friendly-chat',
+      name: '💬 Amigável & Descontraído',
+      description: 'Tom de conversa entre amigos, informal e caloroso.',
+      preferredVoice: 'Puck',
+      locutionInstruction: 'Fale de forma descontraída e amigável, como um bom amigo conversando num café.',
+      narratorInstruction: 'Leia com naturalidade informal, leveza e simpatia genuína.',
+      transcriberInstruction: 'Transcreva capturando o tom espontâneo da fala.',
+      visionInstruction: 'Comente sobre o que está na tela de forma descontraída e acessível.'
+    },
+    {
+      id: 'storyteller',
+      name: '🧙 Contador de Histórias & Fantasia',
+      description: 'Entonação rica em suspense, dramaticidade e expressividade teatral.',
+      preferredVoice: 'Charon',
+      locutionInstruction: 'Narre como um bardo contador de lendas: crie suspense, use nuances dramáticas e transporte o ouvinte.',
+      narratorInstruction: 'Dê vida a cada frase com expressividade teatral, modulando o tom conforme a emoção do texto.',
+      transcriberInstruction: 'Transcreva mantendo o ritmo poético e as exclamações originais.',
+      visionInstruction: 'Descreva a cena visual como um cenário épico de uma grande aventura.'
+    }
+  ];
+
   // Configurações padrão com modo direto prioritário
   let settings = {
     connectionMode: 'direct',
@@ -36,9 +119,12 @@
     ttsModel: 'gemini-3.8-flash-lite-tts',
     sttModel: 'gemini-3.5-flash-lite',
     ttsVoice: 'Kore',
-    narratorInstruction: 'Você é um narrador natural e expressivo. Leia o texto com dicção impecável.',
-    transcriberInstruction: 'Transcreva com fidelidade absoluta o áudio recebido. Aplique pontuação correta.',
-    visionInstruction: 'Analise detalhadamente a imagem capturada da tela com o Google Lens.',
+    activeAgentId: 'default-natural',
+    customAgents: [],
+    locutionInstruction: DEFAULT_AGENTS[0].locutionInstruction,
+    narratorInstruction: DEFAULT_AGENTS[0].narratorInstruction,
+    transcriberInstruction: DEFAULT_AGENTS[0].transcriberInstruction,
+    visionInstruction: DEFAULT_AGENTS[0].visionInstruction,
     enableCtrlB: true,
     enableCtrlDrag: true,
     enablePauseBreak: true,
@@ -48,6 +134,11 @@
     shortcutNarrateConfig: { ctrl: true, shift: false, alt: false, code: 'KeyB', key: 'b' },
     shortcutRecordConfig: { ctrl: false, shift: false, alt: false, code: 'Pause', key: 'Pause' }
   };
+
+  function getActiveAgent() {
+    const list = [...DEFAULT_AGENTS, ...(Array.isArray(settings.customAgents) ? settings.customAgents : [])];
+    return list.find(a => a.id === settings.activeAgentId) || list[0];
+  }
 
   function loadSettings() {
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
@@ -483,11 +574,13 @@
       return `<span class="vocallens-hud-word pending" id="vword-${i}" data-widx="${i}">${escapeHtml(word)} </span>`;
     }).join('');
 
+    const activeAgent = getActiveAgent();
     hud.innerHTML = `
       <div class="vocallens-nhud-header">
         <div class="vocallens-nhud-title-wrap">
           <span class="vocallens-nhud-pulse"></span>
           <strong class="vocallens-nhud-title">Narrando com Gemini (${settings.ttsVoice || 'Kore'})</strong>
+          <span class="vocallens-agent-badge" title="Agente Ativo">${escapeHtml(activeAgent.name.replace(/^(🎙️|📻|🎓|⚡|🧘|💼|💬|🧙|✨)\s*/, ''))}</span>
           <span id="vocallens-queue-badge" class="vocallens-queue-badge"></span>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
@@ -1908,11 +2001,44 @@
     }
   }, true);
 
-  // Escuta mensagens do Popup ou Background para parar áudio imediatamente
+  // Escuta mensagens do Popup ou Background para parar áudio imediatamente ou sincronizar controles
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.action === 'STOP_ALL_AUDIO' || request.action === 'stopTts' || request.action === 'stopAudio') {
         stopAllNarration('Reprodução interrompida via extensão');
+        sendResponse({ success: true });
+        return true;
+      }
+      if (request.action === 'SET_AUDIO_SPEED') {
+        const sp = parseFloat(request.speed || 1.0);
+        settings.ttsSpeed = sp;
+        if (activeAudioPlayer) {
+          activeAudioPlayer.playbackRate = sp;
+          activeAudioPlayer.defaultPlaybackRate = sp;
+          activeAudioPlayer.preservesPitch = true;
+        }
+        updateNarrationHudSpeedUI(sp);
+        sendResponse({ success: true });
+        return true;
+      }
+      if (request.action === 'SET_AUDIO_VOLUME') {
+        const vol = parseFloat(request.volume !== undefined ? request.volume : 1.0);
+        settings.ttsVolume = vol;
+        if (activeAudioPlayer) {
+          activeAudioPlayer.volume = Math.min(1, Math.max(0, vol));
+        }
+        updateNarrationHudVolumeUI(vol);
+        sendResponse({ success: true });
+        return true;
+      }
+      if (request.action === 'SET_ACTIVE_AGENT') {
+        settings.activeAgentId = request.agentId;
+        if (request.agent) {
+          settings.locutionInstruction = request.agent.locutionInstruction;
+          settings.narratorInstruction = request.agent.narratorInstruction;
+          settings.transcriberInstruction = request.agent.transcriberInstruction;
+          settings.visionInstruction = request.agent.visionInstruction;
+        }
         sendResponse({ success: true });
         return true;
       }

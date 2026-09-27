@@ -425,6 +425,18 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+.vocallens-agent-badge {
+  background: rgba(14, 165, 233, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
 /* Controles de Reprodução e Parada */
 .vocallens-nhud-controls {
   display: flex;

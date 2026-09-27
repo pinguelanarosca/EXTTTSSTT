@@ -7,19 +7,116 @@
   let recordTimer = null;
   let recordSeconds = 0;
 
+  const DEFAULT_AGENTS = [
+    {
+      id: 'default-natural',
+      name: '🎙️ Padrão / Natural',
+      description: 'Voz equilibrada com entonação humana natural e ritmo balanceado.',
+      preferredVoice: 'Kore',
+      locutionInstruction: 'Você é um locutor profissional e envolvente. Dite os textos com ritmo dinâmico e tom natural.',
+      narratorInstruction: 'Você é um narrador natural e expressivo. Leia o texto com dicção impecável, ritmo equilibrado e entonação humana.',
+      transcriberInstruction: 'Transcreva com fidelidade absoluta o áudio recebido. Aplique pontuação correta e remova vícios de linguagem comuns.',
+      visionInstruction: 'Analise detalhadamente a imagem capturada da tela com o Google Lens. Se contiver texto, transcreva ou leia-o com máxima precisão.',
+      isCustom: false
+    },
+    {
+      id: 'radio-host',
+      name: '📻 Locutor Profissional & Rádio',
+      description: 'Projeção forte, entonação comercial enérgica e ritmo dinâmico.',
+      preferredVoice: 'Fenrir',
+      locutionInstruction: 'Fale com a energia e cadência de um grande locutor de rádio e TV: voz encorpada, pausas enfáticas e entusiasmo cativante.',
+      narratorInstruction: 'Leia como um apresentador de notícias de destaque: tom firme, projeção limpa e excelente ritmo.',
+      transcriberInstruction: 'Transcreva destacando com pontuação expressiva e clareza formal.',
+      visionInstruction: 'Descreva a imagem em formato de manchete e resumo vibrante dos pontos principais.',
+      isCustom: false
+    },
+    {
+      id: 'teacher-didactic',
+      name: '🎓 Professor / Didático',
+      description: 'Ritmo pausado, ênfase pedagógica e clareza explicativa.',
+      preferredVoice: 'Charon',
+      locutionInstruction: 'Explique de forma didática e acolhedora, como um professor paciente explicando conceitos importantes.',
+      narratorInstruction: 'Leia em ritmo pausado e articulado, dando ênfase nas palavras-chave e facilitando o aprendizado.',
+      transcriberInstruction: 'Transcreva preservando termos técnicos e estruturando com pontuação impecável.',
+      visionInstruction: 'Analise e explique passo a passo diagramas, códigos e textos presentes na captura.',
+      isCustom: false
+    },
+    {
+      id: 'fast-summary',
+      name: '⚡ Resumidor Rápido & Direto',
+      description: 'Fala rápida e objetiva focada na essência do conteúdo.',
+      preferredVoice: 'Puck',
+      locutionInstruction: 'Seja direto ao ponto, com cadência ágil e foco nas informações mais relevantes.',
+      narratorInstruction: 'Leia os pontos principais de forma ágil, fluida e concisa.',
+      transcriberInstruction: 'Transcreva exatamente o essencial com máxima precisão.',
+      visionInstruction: 'Sintetize imediatamente os tópicos centrais da tela capturada.',
+      isCustom: false
+    },
+    {
+      id: 'calm-zen',
+      name: '🧘 Narrador Zen & Meditativo',
+      description: 'Voz suave, ritmo lento e calmo, tom reconfortante.',
+      preferredVoice: 'Zephyr',
+      locutionInstruction: 'Fale com calma, tranquilidade e suavidade, trazendo paz e relaxamento para o ouvinte.',
+      narratorInstruction: 'Leia com suavidade e serenidade, mantendo pausas harmoniosas e tom acolhedor.',
+      transcriberInstruction: 'Transcreva com precisão e tranquilidade.',
+      visionInstruction: 'Descreva o ambiente visual com sutileza e serenidade.',
+      isCustom: false
+    },
+    {
+      id: 'executive-formal',
+      name: '💼 Executivo & Corporativo',
+      description: 'Linguagem polida, postura corporativa séria e tom seguro.',
+      preferredVoice: 'Fenrir',
+      locutionInstruction: 'Adote uma postura executiva de alto nível: vocabulário refinado, tom seguro e direto aos resultados.',
+      narratorInstruction: 'Leia relatórios e documentos corporativos com seriedade, clareza e autoridade profissional.',
+      transcriberInstruction: 'Transcreva termos de negócios, siglas e números com rigor absoluto.',
+      visionInstruction: 'Analise métricas, tabelas e gráficos da tela com foco em decisões de negócios.',
+      isCustom: false
+    },
+    {
+      id: 'friendly-chat',
+      name: '💬 Amigável & Descontraído',
+      description: 'Tom de conversa entre amigos, informal e caloroso.',
+      preferredVoice: 'Puck',
+      locutionInstruction: 'Fale de forma descontraída e amigável, como um bom amigo conversando num café.',
+      narratorInstruction: 'Leia com naturalidade informal, leveza e simpatia genuína.',
+      transcriberInstruction: 'Transcreva capturando o tom espontâneo da fala.',
+      visionInstruction: 'Comente sobre o que está na tela de forma descontraída e acessível.',
+      isCustom: false
+    },
+    {
+      id: 'storyteller',
+      name: '🧙 Contador de Histórias & Fantasia',
+      description: 'Entonação rica em suspense, dramaticidade e expressividade teatral.',
+      preferredVoice: 'Charon',
+      locutionInstruction: 'Narre como um bardo contador de lendas: crie suspense, use nuances dramáticas e transporte o ouvinte.',
+      narratorInstruction: 'Dê vida a cada frase com expressividade teatral, modulando o tom conforme a emoção do texto.',
+      transcriberInstruction: 'Transcreva mantendo o ritmo poético e as exclamações originais.',
+      visionInstruction: 'Descreva a cena visual como um cenário épico de uma grande aventura.',
+      isCustom: false
+    }
+  ];
+
   const defaults = {
     serverUrl: '',
     connectionMode: 'direct',
     ttsVoice: 'Kore',
     ttsSpeed: 1.0,
+    ttsVolume: 1.0,
+    activeAgentId: 'default-natural',
+    customAgents: [],
     ttsModel: 'gemini-3.8-flash-lite-tts',
     sttModel: 'gemini-3.5-flash-lite',
     apiKey: 'YOUR_GEMINI_API_KEY',
-    narratorInstruction: 'Você é um narrador natural e expressivo.',
-    transcriberInstruction: 'Transcreva fielmente em português do Brasil sem explicações.'
+    narratorInstruction: DEFAULT_AGENTS[0].narratorInstruction,
+    locutionInstruction: DEFAULT_AGENTS[0].locutionInstruction,
+    transcriberInstruction: DEFAULT_AGENTS[0].transcriberInstruction,
+    visionInstruction: DEFAULT_AGENTS[0].visionInstruction
   };
 
   let currentSettings = { ...defaults };
+  let allAgentsList = [...DEFAULT_AGENTS];
 
   // Utilitário de reprodução PCM 24kHz
   function pcmToWav(pcm16Data, sampleRate = 24000) {
@@ -556,8 +653,63 @@
   chrome.storage.sync.get(defaults, (items) => {
     currentSettings = Object.assign(currentSettings, items);
     
+    // Carrega agentes pré-definidos + customizados
+    const customList = Array.isArray(items.customAgents) ? items.customAgents : [];
+    allAgentsList = [...DEFAULT_AGENTS, ...customList];
+
+    // Renderiza seletor de Agentes
+    renderAgentDropdown();
+
     // Voz dropdown com suporte a vozes nativas e personalizadas
     renderVoiceDropdown();
+
+    // Configura Volume Slider no Popup
+    const volSlider = document.getElementById('popupVolumeSlider');
+    const volBadge = document.getElementById('popupVolumeBadge');
+    if (volSlider) {
+      const vol = currentSettings.ttsVolume !== undefined ? Number(currentSettings.ttsVolume) : 1.0;
+      volSlider.value = vol;
+      if (volBadge) volBadge.innerText = Math.round(vol * 100) + '%';
+
+      const updateVol = (e) => {
+        const val = parseFloat(e.target.value);
+        currentSettings.ttsVolume = val;
+        if (volBadge) volBadge.innerText = Math.round(val * 100) + '%';
+        chrome.storage.sync.set({ ttsVolume: val });
+        if (activeAudio) activeAudio.volume = val;
+        broadcastToActiveTab({ action: 'SET_AUDIO_VOLUME', volume: val });
+      };
+
+      volSlider.addEventListener('input', updateVol);
+      volSlider.addEventListener('change', updateVol);
+    }
+
+    // Configura Velocidade no Popup
+    const spBadge = document.getElementById('popupSpeedBadge');
+    if (spBadge) {
+      const sp = currentSettings.ttsSpeed || 1.0;
+      spBadge.innerText = sp + 'x';
+      document.querySelectorAll('.speed-pill').forEach(p => {
+        if (Math.abs(parseFloat(p.dataset.speed) - sp) < 0.05) {
+          p.classList.add('active');
+        } else {
+          p.classList.remove('active');
+        }
+      });
+    }
+
+    // Link para Gerenciar Agentes nas Opções
+    const openAgentsLink = document.getElementById('openOptionsAgentsLink');
+    if (openAgentsLink) {
+      openAgentsLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (chrome.runtime.openOptionsPage) {
+          chrome.runtime.openOptionsPage();
+        } else {
+          window.open(chrome.runtime.getURL('options.html'));
+        }
+      });
+    }
 
     // Seleção de Modelo TTS
     const ttsModelSelect = document.getElementById('ttsModelSelect');
@@ -611,6 +763,93 @@
           if (activeAudio) activeAudio.pause();
           activeAudio = new Audio('data:audio/wav;base64,' + wavBase64);
           activeAudio.playbackRate = currentSettings.ttsSpeed || 1.0;
+          activeAudio.volume = currentSettings.ttsVolume !== undefined ? currentSettings.ttsVolume : 1.0;
+          activeAudio.play();
+          testNewVoiceBtn.innerText = '▶️ Testar Voz';
+        } catch (err) {
+          alert('Erro ao testar voz: ' + (err.message || err));
+          testNewVoiceBtn.innerText = '▶️ Testar Voz';
+        }
+      });
+    }
+  });
+
+  function renderAgentDropdown() {
+    const select = document.getElementById('popupAgentSelect');
+    const descEl = document.getElementById('popupAgentDesc');
+    if (!select) return;
+
+    select.innerHTML = '';
+
+    const standardGroup = document.createElement('optgroup');
+    standardGroup.label = '🎭 Agentes Pré-Configurados';
+    const customGroup = document.createElement('optgroup');
+    customGroup.label = '✨ Meus Agentes Personalizados';
+
+    allAgentsList.forEach(agent => {
+      const opt = document.createElement('option');
+      opt.value = agent.id;
+      opt.textContent = agent.name;
+      if (agent.isCustom) {
+        customGroup.appendChild(opt);
+      } else {
+        standardGroup.appendChild(opt);
+      }
+    });
+
+    select.appendChild(standardGroup);
+    if (customGroup.children.length > 0) {
+      select.appendChild(customGroup);
+    }
+
+    const currentId = currentSettings.activeAgentId || 'default-natural';
+    select.value = currentId;
+
+    const currentAgent = allAgentsList.find(a => a.id === currentId) || allAgentsList[0];
+    if (descEl && currentAgent) {
+      descEl.innerText = currentAgent.description || '';
+    }
+
+    select.addEventListener('change', (e) => {
+      const chosenId = e.target.value;
+      currentSettings.activeAgentId = chosenId;
+      const agent = allAgentsList.find(a => a.id === chosenId);
+
+      if (agent) {
+        if (descEl) descEl.innerText = agent.description || '';
+        
+        // Se o agente possui voz preferida, atualiza
+        if (agent.preferredVoice) {
+          currentSettings.ttsVoice = agent.preferredVoice;
+          const vSel = document.getElementById('voiceSelect');
+          if (vSel) vSel.value = agent.preferredVoice;
+        }
+
+        chrome.storage.sync.set({
+          activeAgentId: chosenId,
+          ttsVoice: currentSettings.ttsVoice,
+          locutionInstruction: agent.locutionInstruction,
+          narratorInstruction: agent.narratorInstruction,
+          transcriberInstruction: agent.transcriberInstruction,
+          visionInstruction: agent.visionInstruction
+        });
+
+        broadcastToActiveTab({ action: 'SET_ACTIVE_AGENT', agentId: chosenId, agent: agent });
+      }
+    });
+  }
+
+  function broadcastToActiveTab(msg) {
+    if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.query) {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs && tabs[0] && tabs[0].id) {
+          chrome.tabs.sendMessage(tabs[0].id, msg, () => {
+            if (chrome.runtime.lastError) {}
+          });
+        }
+      });
+    }
+  }
           activeAudio.play();
         } catch (err) {
           alert('Erro ao testar voz: ' + (err.message || err));
