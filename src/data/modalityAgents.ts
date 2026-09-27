@@ -136,26 +136,83 @@ export const DEFAULT_MODALITY_AGENTS: ModalityAgent[] = [
   }
 ];
 
+export const TTS_CASCADE_ORDER = [
+  { id: 'gemini-3.8-live-thinking', name: 'Gemini 3.8 Live Extended Thinking', desc: 'Raciocínio profundo e fala natural em tempo real' },
+  { id: 'gemini-3.8-live', name: 'Gemini 3.8 Live', desc: 'Streaming bidirecional ultrarrápido' },
+  { id: 'gemini-3-flash-live', name: 'Gemini 3 Flash Live', desc: 'Sessão contínua de áudio ao vivo' },
+  { id: 'gemini-3.8-flash-lite-tts', name: 'Gemini 3.8 Flash Lite TTS', desc: 'Latência mínima para frases curtas' },
+  { id: 'gemini-3.8-flash-tts', name: 'Gemini 3.8 Flash TTS', desc: 'Equilíbrio ideal entre naturalidade e velocidade' },
+  { id: 'gemini-3.1-flash-tts', name: 'Gemini 3.1 Flash TTS', desc: 'Geração rápida de voz' },
+  { id: 'gemini-2.5-flash-tts', name: 'Gemini 2.5 Flash TTS', desc: 'Estabilidade e ampla compatibilidade' },
+  { id: 'gemini-3.1-flash-maps-grounding', name: 'Map grounding Gemini 3.1 Flash TTS', desc: 'Síntese ancorada com localização e contexto' }
+];
+
+export const STT_CASCADE_ORDER = [
+  { id: 'gemini-3.8-live-thinking', name: 'Gemini 3.8 Live Extended Thinking', desc: 'Transcrição com raciocínio e pontuação precisa' },
+  { id: 'gemini-3.8-live', name: 'Gemini 3.8 Live', desc: 'Streaming de transcrição ao vivo' },
+  { id: 'gemini-3-flash-live', name: 'Gemini 3 Flash Live', desc: 'Detecção contínua de fala' },
+  { id: 'gemini-3.8-flash-lite-stt', name: 'Gemini 3.8 Flash Lite STT', desc: 'Transcrição instantânea com menor latência' },
+  { id: 'gemini-3.8-flash-stt', name: 'Gemini 3.8 Flash STT', desc: 'Alta fidelidade de vocabulário' },
+  { id: 'gemini-3.1-flash-stt', name: 'Gemini 3.1 Flash STT', desc: 'Transcrição estável para áudios longos' },
+  { id: 'gemini-2.5-flash-stt', name: 'Gemini 2.5 Flash STT', desc: 'Fidelidade gramatical completa' },
+  { id: 'gemini-3.1-flash-maps-grounding', name: 'Map grounding Gemini 3.1 Flash STT', desc: 'Transcrição com ancoragem geográfica' }
+];
+
 export const AVAILABLE_MODELS = [
   {
-    id: 'gemini-2.5-flash',
-    name: 'Gemini 2.5 Flash',
-    category: 'Geral & Rápido',
-    description: 'Excelente velocidade e raciocínio multimodal balanceado para STT, OCR e TTS.',
-    recommendedFor: ['transcription', 'vision', 'locution']
+    id: 'gemini-3.8-live-thinking',
+    name: 'Gemini 3.8 Live Extended Thinking',
+    category: 'Live & Raciocínio',
+    description: 'Modo Live com raciocínio estendido e dicção expressiva.',
+    recommendedFor: ['narration', 'transcription', 'locution']
   },
   {
-    id: 'gemini-2.5-pro',
-    name: 'Gemini 2.5 Pro',
-    category: 'Alta Capacidade',
-    description: 'Maior capacidade analítica para síntese complexa, literatura e OCR denso.',
+    id: 'gemini-3.8-live',
+    name: 'Gemini 3.8 Live',
+    category: 'Live Tempo Real',
+    description: 'Streaming contínuo de áudio com latência ultrabaixa.',
+    recommendedFor: ['locution', 'transcription']
+  },
+  {
+    id: 'gemini-3-flash-live',
+    name: 'Gemini 3 Flash Live',
+    category: 'Live Flash',
+    description: 'Interação rápida em tempo real para ditado e comandos.',
+    recommendedFor: ['transcription', 'locution']
+  },
+  {
+    id: 'gemini-3.8-flash-lite-tts',
+    name: 'Gemini 3.8 Flash Lite TTS',
+    category: 'TTS Ultra Rápido',
+    description: 'Especialista em geração de fala imediata.',
+    recommendedFor: ['locution', 'narration']
+  },
+  {
+    id: 'gemini-3.8-flash-tts',
+    name: 'Gemini 3.8 Flash TTS',
+    category: 'TTS Geral',
+    description: 'Vozes humanas expressivas com entonação natural.',
+    recommendedFor: ['narration', 'locution']
+  },
+  {
+    id: 'gemini-3.1-flash-tts',
+    name: 'Gemini 3.1 Flash TTS',
+    category: 'TTS Produção',
+    description: 'Síntese de voz com resposta rápida.',
+    recommendedFor: ['narration']
+  },
+  {
+    id: 'gemini-2.5-flash-tts',
+    name: 'Gemini 2.5 Flash TTS',
+    category: 'TTS Flash',
+    description: 'Excelente compatibilidade e resposta ágil.',
+    recommendedFor: ['locution', 'narration']
+  },
+  {
+    id: 'gemini-3.1-flash-maps-grounding',
+    name: 'Map grounding Gemini 3.1 Flash TTS',
+    category: 'Ancoragem & Mapas',
+    description: 'Síntese com conhecimento contextual e geográfico.',
     recommendedFor: ['narration', 'vision']
-  },
-  {
-    id: 'gemini-2.5-flash-lite',
-    name: 'Gemini 2.5 Flash Lite',
-    category: 'Ultra Rápido',
-    description: 'Menor latência para transcrição em tempo real e comandos rápidos.',
-    recommendedFor: ['transcription']
   }
 ];

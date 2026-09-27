@@ -521,12 +521,17 @@
             <div class="input-group">
               <label for="ttsModel">🔊 Modelo para Síntese de Voz (TTS)</label>
               <select id="ttsModel" style="background:#020617; border:1px solid #1e293b; border-radius:10px; padding:12px; color:#f8fafc; font-size:13px; font-weight:600;">
-                <option value="gemini-3.8-flash-lite-tts">gemini-3.8-flash-lite-tts (Oficial Padrão - Ultra-rápido, menor latência)</option>
-                <option value="gemini-3.8-flash-tts">gemini-3.8-flash-tts (Neural Flagship - Máxima fidelidade e expressividade)</option>
-                <option value="gemini-3.1-flash-tts-preview">gemini-3.1-flash-tts-preview (Preview Experimental de Síntese de Voz)</option>
+                <option value="gemini-3.8-live-thinking">1. Gemini 3.8 Live Extended Thinking (Raciocínio Profundo & Fala)</option>
+                <option value="gemini-3.8-live">2. Gemini 3.8 Live (Streaming Instantâneo ao Vivo)</option>
+                <option value="gemini-3-flash-live">3. Gemini 3 Flash Live (Áudio Bidirecional Rápido)</option>
+                <option value="gemini-3.8-flash-lite-tts">4. Gemini 3.8 Flash Lite TTS (Ultra-rápido, menor latência)</option>
+                <option value="gemini-3.8-flash-tts">5. Gemini 3.8 Flash TTS (Máxima fidelidade e expressividade)</option>
+                <option value="gemini-3.1-flash-tts">6. Gemini 3.1 Flash TTS (Síntese Neural Ágil)</option>
+                <option value="gemini-2.5-flash-tts">7. Gemini 2.5 Flash TTS (Estabilidade e Alta Compatibilidade)</option>
+                <option value="gemini-3.1-flash-maps-grounding">8. Map grounding Gemini 3.1 Flash TTS (Contexto & Localização)</option>
               </select>
               <span style="font-size: 11px; color: #38bdf8; display: block; margin-top: 6px;">
-                ⚡ Especializados em sintetizar áudio neural natural com as vozes prebuilt.
+                ⚡ Ordem de cascata automática: 3.8 Live Thinking ➔ 3.8 Live ➔ 3 Flash Live ➔ 3.8 Flash Lite ➔ 3.8 Flash ➔ 3.1 Flash ➔ 2.5 Flash ➔ Map Grounding 3.1.
               </span>
             </div>
 
@@ -534,13 +539,17 @@
             <div class="input-group">
               <label for="sttModel">🎙️ Modelo para Transcrição de Fala (STT)</label>
               <select id="sttModel" style="background:#020617; border:1px solid #1e293b; border-radius:10px; padding:12px; color:#f8fafc; font-size:13px; font-weight:600;">
-                <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Recomendado - Rápido, pontuação e fidelidade)</option>
-                <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Ultra-baixa latência para transcrição instantânea)</option>
-                <option value="gemini-3.8-flash">gemini-3.8-flash (Equilíbrio e interpretação semântica profunda)</option>
-                <option value="gemini-2.5-flash">gemini-2.5-flash (Estabilidade para gravações longas)</option>
+                <option value="gemini-3.8-live-thinking">1. Gemini 3.8 Live Extended Thinking (Raciocínio & Pontuação)</option>
+                <option value="gemini-3.8-live">2. Gemini 3.8 Live (Transcrição Contínua ao Vivo)</option>
+                <option value="gemini-3-flash-live">3. Gemini 3 Flash Live (Detecção em Tempo Real)</option>
+                <option value="gemini-3.8-flash-lite-stt">4. Gemini 3.8 Flash Lite STT (Ultra-baixa latência instantânea)</option>
+                <option value="gemini-3.8-flash-stt">5. Gemini 3.8 Flash STT (Fidelidade Semântica Elevada)</option>
+                <option value="gemini-3.1-flash-stt">6. Gemini 3.1 Flash STT (Alta Velocidade e Precisão)</option>
+                <option value="gemini-2.5-flash-stt">7. Gemini 2.5 Flash STT (Fidelidade Gramatical Completa)</option>
+                <option value="gemini-3.1-flash-maps-grounding">8. Map grounding Gemini 3.1 Flash STT (Ancoragem Geográfica)</option>
               </select>
               <span style="font-size: 11px; color: #34d399; display: block; margin-top: 6px;">
-                ⚡ Modelos multimodais que transcrevem com precisão os áudios do microfone.
+                ⚡ Ordem de cascata automática para transcrição do microfone e gravação.
               </span>
             </div>
           </div>

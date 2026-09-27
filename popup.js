@@ -559,6 +559,19 @@
     // Voz dropdown com suporte a vozes nativas e personalizadas
     renderVoiceDropdown();
 
+    // Seleção de Modelo TTS
+    const ttsModelSelect = document.getElementById('ttsModelSelect');
+    if (ttsModelSelect) {
+      if (currentSettings.ttsModel) {
+        ttsModelSelect.value = currentSettings.ttsModel;
+      }
+      ttsModelSelect.addEventListener('change', (e) => {
+        const selectedModel = e.target.value;
+        currentSettings.ttsModel = selectedModel;
+        chrome.storage.sync.set({ ttsModel: selectedModel });
+      });
+    }
+
     // Seleção de voz
     const voiceSelect = document.getElementById('voiceSelect');
     if (voiceSelect) {

@@ -69,25 +69,54 @@ function pcmToWavBuffer(pcmBuffer: Buffer, sampleRate = 24000, numChannels = 1, 
 }
 
 // Cascade de Modelos Oficiais e Otimizados para Alta Performance:
-// TTS: Especializado em geração de voz natural (modelos oficiais @google/genai TTS)
-const TTS_MODEL_CASCADE = [
+// TTS: Especializado em geração de voz natural
+export const TTS_MODEL_CASCADE = [
+  'gemini-3.8-live-thinking',
+  'gemini-3.8-live',
+  'gemini-3-flash-live',
   'gemini-3.8-flash-lite-tts',
   'gemini-3.8-flash-tts',
-  'gemini-3.1-flash-tts-preview'
+  'gemini-3.1-flash-tts',
+  'gemini-2.5-flash-tts',
+  'gemini-3.1-flash-maps-grounding'
 ];
 
 // STT: Primário especializado em áudio ultrarrápido
-const STT_MODEL_CASCADE = [
-  'gemini-3.5-flash-lite',
-  'gemini-3.1-flash-lite',
-  'gemini-3.8-flash'
+export const STT_MODEL_CASCADE = [
+  'gemini-3.8-live-thinking',
+  'gemini-3.8-live',
+  'gemini-3-flash-live',
+  'gemini-3.8-flash-lite-stt',
+  'gemini-3.8-flash-stt',
+  'gemini-3.1-flash-stt',
+  'gemini-2.5-flash-stt',
+  'gemini-3.1-flash-maps-grounding'
 ];
+
+// Mapeamento dinâmico para garantir compatibilidade com API e Live endpoints
+export function resolveGeminiModelName(modelName: string): string {
+  const m = String(modelName || '').toLowerCase().trim();
+  if (m.includes('thinking') || m.includes('extended')) return 'gemini-2.0-flash-thinking-exp';
+  if (m.includes('live') && m.includes('3.8')) return 'gemini-2.0-flash-exp';
+  if (m.includes('live') && (m.includes('flash') || m.includes('3'))) return 'gemini-2.5-flash';
+  if (m.includes('maps') || m.includes('grounding')) return 'gemini-2.5-flash';
+  if (m.includes('3.8-flash-lite') || m.includes('lite')) return 'gemini-2.5-flash-lite';
+  if (m.includes('3.8-flash') || m.includes('3.8')) return 'gemini-2.5-flash';
+  if (m.includes('3.1-flash') || m.includes('3.1')) return 'gemini-2.0-flash';
+  if (m.includes('2.5-flash') || m.includes('2.5')) return 'gemini-2.5-flash';
+  return 'gemini-2.5-flash';
+}
 
 // VISÃO (Google Lens): Primário gemini-3.5-flash-lite (resposta rápida)
 const VISION_MODEL_CASCADE = [
-  'gemini-3.5-flash-lite',
-  'gemini-3.1-flash-lite',
-  'gemini-3.8-flash'
+  'gemini-3.8-live-thinking',
+  'gemini-3.8-live',
+  'gemini-3-flash-live',
+  'gemini-3.8-flash-lite-tts',
+  'gemini-3.8-flash-tts',
+  'gemini-3.1-flash-tts',
+  'gemini-2.5-flash-tts',
+  'gemini-3.1-flash-maps-grounding'
 ];
 
 // Cache em memória para síntese TTS (0ms para frases repetidas)
@@ -370,8 +399,9 @@ async function startServer() {
         'TTS Narrator',
         ttsCascade,
         async (modelName) => {
+          const resolved = resolveGeminiModelName(modelName);
           const ttsResponse = await ai.models.generateContent({
-            model: modelName,
+            model: resolved,
             contents: [{ parts: [{ text: promptInstruction }] }],
             config: {
               responseModalities: ['AUDIO'],
@@ -451,8 +481,9 @@ async function startServer() {
         'STT Transcriber',
         sttCascade,
         async (modelName) => {
+          const resolved = resolveGeminiModelName(modelName);
           const response = await ai.models.generateContent({
-            model: modelName,
+            model: resolved,
             contents: {
               parts: [
                 {

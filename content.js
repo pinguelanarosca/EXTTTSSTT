@@ -1062,17 +1062,39 @@
     throw new Error('Falha após retries na cadeia de fallback (' + modelList.join(' -> ') + '): ' + msg);
   }
 
+  function resolveDirectGeminiModelName(modelName) {
+    const m = String(modelName || '').toLowerCase().trim();
+    if (m.includes('thinking') || m.includes('extended')) return 'gemini-2.0-flash-thinking-exp';
+    if (m.includes('live') && m.includes('3.8')) return 'gemini-2.0-flash-exp';
+    if (m.includes('live') && (m.includes('flash') || m.includes('3'))) return 'gemini-2.5-flash';
+    if (m.includes('maps') || m.includes('grounding')) return 'gemini-2.5-flash';
+    if (m.includes('3.8-flash-lite') || m.includes('lite')) return 'gemini-2.5-flash-lite';
+    if (m.includes('3.8-flash') || m.includes('3.8')) return 'gemini-2.5-flash';
+    if (m.includes('3.1-flash') || m.includes('3.1')) return 'gemini-2.0-flash';
+    if (m.includes('2.5-flash') || m.includes('2.5')) return 'gemini-2.5-flash';
+    return 'gemini-2.5-flash';
+  }
+
   const EXT_TTS_CASCADE = [
+    'gemini-3.8-live-thinking',
+    'gemini-3.8-live',
+    'gemini-3-flash-live',
     'gemini-3.8-flash-lite-tts',
     'gemini-3.8-flash-tts',
-    'gemini-3.1-flash-tts-preview'
+    'gemini-3.1-flash-tts',
+    'gemini-2.5-flash-tts',
+    'gemini-3.1-flash-maps-grounding'
   ];
 
   const EXT_STT_CASCADE = [
-    'gemini-3.5-flash-lite',
-    'gemini-3.1-flash-lite',
-    'gemini-3.8-flash',
-    'gemini-2.5-flash'
+    'gemini-3.8-live-thinking',
+    'gemini-3.8-live',
+    'gemini-3-flash-live',
+    'gemini-3.8-flash-lite-stt',
+    'gemini-3.8-flash-stt',
+    'gemini-3.1-flash-stt',
+    'gemini-2.5-flash-stt',
+    'gemini-3.1-flash-maps-grounding'
   ];
 
   async function directGeminiTTS(text, voiceOverride = null, instOverride = null) {
@@ -1106,7 +1128,8 @@
     const ttsCascade = [chosenTTS, ...EXT_TTS_CASCADE.filter(m => m !== chosenTTS)];
 
     return await executeDirectWithFallback('TTS', ttsCascade, payloadInfo, async (modelName) => {
-      const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent?key=' + encodeURIComponent(creds.apiKey);
+      const resolvedApiName = resolveDirectGeminiModelName(modelName);
+      const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + resolvedApiName + ':generateContent?key=' + encodeURIComponent(creds.apiKey);
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1153,7 +1176,8 @@
     const sttCascade = [chosenSTT, ...EXT_STT_CASCADE.filter(m => m !== chosenSTT)];
 
     return await executeDirectWithFallback('STT', sttCascade, payloadInfo, async (modelName) => {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(creds.apiKey)}`;
+      const resolvedApiName = resolveDirectGeminiModelName(modelName);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedApiName}:generateContent?key=${encodeURIComponent(creds.apiKey)}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
