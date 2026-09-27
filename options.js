@@ -972,6 +972,59 @@
     });
   }
 
+  // Sincronização Git na Aba de Opções
+  const optCheckGitBtn = document.getElementById('optCheckGitBtn');
+  const optPullGitBtn = document.getElementById('optPullGitBtn');
+  const optReloadExtBtn = document.getElementById('optReloadExtBtn');
+  const optRestartChromeBtn = document.getElementById('optRestartChromeBtn');
+  const optGitLogs = document.getElementById('optGitLogs');
+
+  function addOptGitLog(msg) {
+    if (!optGitLogs) return;
+    const line = document.createElement('div');
+    line.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    optGitLogs.appendChild(line);
+    optGitLogs.scrollTop = optGitLogs.scrollHeight;
+  }
+
+  if (optCheckGitBtn) {
+    optCheckGitBtn.addEventListener('click', async () => {
+      addOptGitLog('Verificando status do repositório no GitHub (pinguelanarosca/FalaGemini)...');
+      try {
+        const res = await fetch('https://api.github.com/repos/pinguelanarosca/FalaGemini/commits/main');
+        if (res.ok) {
+          const data = await res.json();
+          addOptGitLog(`✓ Último commit no GitHub: ${data.sha.substring(0, 7)} - "${data.commit.message}"`);
+        } else {
+          addOptGitLog(`Repositório verificado (Status HTTP: ${res.status}).`);
+        }
+      } catch (err) {
+        addOptGitLog(`Erro ao consultar GitHub: ${err.message}`);
+      }
+    });
+  }
+
+  if (optPullGitBtn) {
+    optPullGitBtn.addEventListener('click', () => {
+      addOptGitLog('Iniciando download do pacote ZIP atualizado de pinguelanarosca/FalaGemini...');
+      window.open('https://github.com/pinguelanarosca/FalaGemini/archive/refs/heads/main.zip', '_blank');
+      addOptGitLog('✓ Download iniciado no navegador.');
+    });
+  }
+
+  if (optReloadExtBtn) {
+    optReloadExtBtn.addEventListener('click', () => {
+      addOptGitLog('Recarregando extensão...');
+      chrome.runtime.reload();
+    });
+  }
+
+  if (optRestartChromeBtn) {
+    optRestartChromeBtn.addEventListener('click', () => {
+      addOptGitLog('Para reiniciar o Google Chrome: digite chrome://restart na barra de endereços e tecle Enter.');
+    });
+  }
+
   function escapeHtml(str) {
     return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
