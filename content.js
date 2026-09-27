@@ -277,12 +277,25 @@
             ${iconHtml}
             <strong class="vocallens-hud-title">${title}</strong>
           </div>
-          <span class="vocallens-hud-stage-badge">${stageBadge}</span>
+          <div style="display:flex; align-items:center; gap:5px;">
+            <span class="vocallens-hud-stage-badge">${stageBadge}</span>
+            <button id="vocallens-hud-cancel-btn" class="vocallens-hud-btn-cancel" title="Cancelar / Parar processo (Esc)">⏹️ Parar</button>
+          </div>
         </div>
         ${subtitle ? `<div class="vocallens-hud-sub">${subtitle}</div>` : ''}
         ${details ? `<div class="vocallens-hud-details">${details}</div>` : ''}
       </div>
     `;
+
+    const cancelBtn = document.getElementById('vocallens-hud-cancel-btn');
+    if (cancelBtn) {
+      cancelBtn.onclick = (e) => {
+        e.stopPropagation();
+        stopAllNarration('Processo cancelado pelo usuário');
+        if (isRecordingVoice) stopRecordingVoice(false);
+        hideHud();
+      };
+    }
 
     if (hud._timer) clearTimeout(hud._timer);
     if (duration > 0) {
@@ -299,19 +312,39 @@
     hudSeconds = 0;
     hud.innerHTML = `
       <div class="vocallens-hud-inner">
-        <div class="vocallens-hud-header">
-          <span class="vocallens-hud-dot-pulse"></span>
-          <strong class="vocallens-hud-title">Gravando Voz no Microfone...</strong>
-          <span class="vocallens-hud-counter" id="vocallens-hud-sec">0s</span>
+        <div class="vocallens-hud-header" style="justify-content: space-between;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span class="vocallens-hud-dot-pulse"></span>
+            <strong class="vocallens-hud-title">Gravando Voz no Microfone...</strong>
+            <span class="vocallens-hud-counter" id="vocallens-hud-sec">0s</span>
+          </div>
+          <button id="vocallens-hud-rec-stop-btn" class="vocallens-hud-btn-cancel" title="Concluir Fala e Transcrever">⏹️ Parar &amp; Transcrever</button>
         </div>
         <div class="vocallens-hud-sub">
-          ${hasTargetField ? '🎯 Alvo identificado no campo. Fale agora e pressione Pause ao terminar.' : '🎙️ Fale agora com clareza. Pressione Pause para finalizar.'}
+          ${hasTargetField ? '🎯 Alvo identificado no campo. Fale agora e pressione Pause ou clique no botão para finalizar.' : '🎙️ Fale agora com clareza. Pressione Pause ou clique no botão para finalizar.'}
         </div>
-        <div class="vocallens-hud-stage-footer" style="font-size:10px; color:#38bdf8; margin-top:2px;">
+        <div class="vocallens-hud-stage-footer" style="font-size:10px; color:#38bdf8; margin-top:2px; display:flex; justify-content:space-between; align-items:center;">
           <span>STT [1/4] • Captura de Áudio</span>
+          <span style="color:#ef4444; font-weight:600; cursor:pointer;" id="vocallens-hud-rec-abort-btn">❌ Cancelar / Descartar (Esc)</span>
         </div>
       </div>
     `;
+
+    const stopRecBtn = document.getElementById('vocallens-hud-rec-stop-btn');
+    if (stopRecBtn) {
+      stopRecBtn.onclick = (e) => {
+        e.stopPropagation();
+        stopRecordingVoice(true);
+      };
+    }
+    const abortRecBtn = document.getElementById('vocallens-hud-rec-abort-btn');
+    if (abortRecBtn) {
+      abortRecBtn.onclick = (e) => {
+        e.stopPropagation();
+        stopRecordingVoice(false);
+        hideHud();
+      };
+    }
 
     clearInterval(hudRecordingTimer);
     hudRecordingTimer = setInterval(() => {
@@ -1851,5 +1884,42 @@
     } catch (err) {
       console.error('[STT&TTS de Satiro] Falha na injeção de texto:', err);
     }
+  }
+
+  // ATALHO GLOBAL ESCAPE: Interrompe qualquer áudio ou cancela qualquer processo imediatamente
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (isNarrationActive()) {
+        stopAllNarration('Reprodução parada via tecla Esc');
+      } else if (isRecordingAudio) {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        isRecordingAudio = false;
+        hideHud();
+      } else if (isSelectingArea) {
+        if (overlayEl) overlayEl.style.display = 'none';
+        isSelectingArea = false;
+        hideHud();
+      } else {
+        hideHud();
+        hideNarrationHud();
+      }
+    }
+  }, true);
+
+  // Escuta mensagens do Popup ou Background para parar áudio imediatamente
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      if (request.action === 'STOP_ALL_AUDIO' || request.action === 'stopTts' || request.action === 'stopAudio') {
+        stopAllNarration('Reprodução interrompida via extensão');
+        sendResponse({ success: true });
+        return true;
+      }
+      if (request.action === 'GET_AUDIO_STATUS') {
+        sendResponse({ isPlaying: isNarrationActive(), isRecording: isRecordingAudio });
+        return true;
+      }
+    });
   }
 })();

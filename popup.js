@@ -1076,6 +1076,18 @@
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
+
+      // Interrompe áudio em abas ativas
+      if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.query) {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs && tabs[0] && tabs[0].id) {
+            chrome.tabs.sendMessage(tabs[0].id, { action: 'STOP_ALL_AUDIO' }, () => {
+              if (chrome.runtime.lastError) {}
+            });
+          }
+        });
+      }
+
       testBtn.style.display = 'flex';
       stopBtn.style.display = 'none';
       testBtn.innerText = '▶️ Testar Voz com Gemini';
