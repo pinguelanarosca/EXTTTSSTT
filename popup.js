@@ -1251,7 +1251,7 @@
     const candidateRepos = [
       'pinguelanarosca/SatiroSTT-TTS',
       'pinguelanarosca/STT-TTSByAlee',
-      'pinguelanarosca/STT-TTSByAlee1'
+      'pinguelanarosca/FalaGemini'
     ];
     const candidateBranches = ['main', 'master'];
 
@@ -1370,7 +1370,7 @@
         const res = await fetch(sUrl + '/api/git/pull', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({ repoUrl: 'https://github.com/pinguelanarosca/STT-TTSByAlee1', branch: 'main', force: false, runInstall: true })
+          body: JSON.stringify({ repoUrl: 'https://github.com/pinguelanarosca/FalaGemini', branch: 'main', force: false, runInstall: true })
         });
         const ct = res.headers.get('content-type') || '';
         if (res.ok && ct.includes('application/json')) {
@@ -1391,7 +1391,7 @@
 
       // 2. Se não estiver rodando servidor local, abrir download direto do ZIP do GitHub
       if (!pullSucceeded) {
-        const repoZipUrl = 'https://github.com/pinguelanarosca/STT-TTSByAlee1/archive/refs/heads/main.zip';
+        const repoZipUrl = 'https://github.com/pinguelanarosca/FalaGemini/archive/refs/heads/main.zip';
         addPopupUpdateLog('📥 Baixando pacote ZIP atualizado do repositório GitHub...');
         chrome.tabs.create({ url: repoZipUrl });
         addPopupUpdateLog('✓ Download do arquivo ZIP iniciado!');
