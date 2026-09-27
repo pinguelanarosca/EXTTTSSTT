@@ -8,8 +8,7 @@ coverage/
 _env*
 !.env.example
 
-# Ignorar mídias e binários pesados para o GitHub
-*.png
+# Ignorar mídias e binários pesados para o GitHub (exceto os ícones da extensão)
 *.jpg
 *.jpeg
 *.gif
@@ -17,6 +16,11 @@ _env*
 *.mp3
 *.wav
 *.zip
-icons/
-public/icons/
+
+# Permitir os ícones oficiais da extensão Chrome
+!icons/
+!icons/*.png
+!public/icons/
+!public/icons/*.png
+
 
