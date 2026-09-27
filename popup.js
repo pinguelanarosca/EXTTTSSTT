@@ -772,6 +772,55 @@
         }
       });
     }
+
+    // Salvar nova voz personalizada
+    const saveNewVoiceBtn = document.getElementById('saveNewVoiceBtn');
+    if (saveNewVoiceBtn) {
+      saveNewVoiceBtn.addEventListener('click', () => {
+        const name = document.getElementById('newVoiceNameInput')?.value?.trim();
+        const baseVoice = document.getElementById('newVoiceBaseSelect')?.value || 'Kore';
+        const inst = document.getElementById('newVoiceInstInput')?.value?.trim() || '';
+
+        if (!name) {
+          alert('Por favor, informe um nome para a nova voz.');
+          return;
+        }
+
+        const newVoice = {
+          id: 'cv-' + Date.now(),
+          name: name,
+          baseVoice: baseVoice,
+          instruction: inst
+        };
+
+        const customList = currentSettings.customVoices || [];
+        customList.push(newVoice);
+        currentSettings.customVoices = customList;
+        currentSettings.ttsVoice = newVoice.id;
+
+        chrome.storage.sync.set({
+          customVoices: customList,
+          ttsVoice: newVoice.id
+        }, () => {
+          renderVoiceDropdown();
+          saveNewVoiceBtn.innerText = '✓ Salvo!';
+          setTimeout(() => { saveNewVoiceBtn.innerText = '➕ Salvar Voz'; }, 2000);
+        });
+      });
+    }
+
+    // Velocidade
+    document.querySelectorAll('.speed-pill').forEach(pill => {
+      const spd = parseFloat(pill.dataset.speed);
+      if (Math.abs(spd - (currentSettings.ttsSpeed || 1.0)) < 0.05) {
+        pill.classList.add('active');
+      } else {
+        pill.classList.remove('active');
+      }
+    });
+
+    updateApiKeyUI();
+    maybeAutoFetchKey();
   });
 
   function renderAgentDropdown() {
@@ -850,64 +899,6 @@
       });
     }
   }
-          activeAudio.play();
-        } catch (err) {
-          alert('Erro ao testar voz: ' + (err.message || err));
-        } finally {
-          testNewVoiceBtn.innerText = '▶️ Testar Voz';
-        }
-      });
-    }
-
-    // Salvar nova voz personalizada
-    const saveNewVoiceBtn = document.getElementById('saveNewVoiceBtn');
-    if (saveNewVoiceBtn) {
-      saveNewVoiceBtn.addEventListener('click', () => {
-        const name = document.getElementById('newVoiceNameInput')?.value?.trim();
-        const baseVoice = document.getElementById('newVoiceBaseSelect')?.value || 'Kore';
-        const inst = document.getElementById('newVoiceInstInput')?.value?.trim() || '';
-
-        if (!name) {
-          alert('Por favor, informe um nome para a nova voz.');
-          return;
-        }
-
-        const newVoice = {
-          id: 'cv-' + Date.now(),
-          name: name,
-          baseVoice: baseVoice,
-          instruction: inst
-        };
-
-        const customList = currentSettings.customVoices || [];
-        customList.push(newVoice);
-        currentSettings.customVoices = customList;
-        currentSettings.ttsVoice = newVoice.id;
-
-        chrome.storage.sync.set({
-          customVoices: customList,
-          ttsVoice: newVoice.id
-        }, () => {
-          renderVoiceDropdown();
-          saveNewVoiceBtn.innerText = '✓ Salvo!';
-          setTimeout(() => { saveNewVoiceBtn.innerText = '➕ Salvar Voz'; }, 2000);
-        });
-      });
-    }
-
-    // Velocidade
-    document.querySelectorAll('.speed-pill').forEach(pill => {
-      const spd = parseFloat(pill.dataset.speed);
-      if (Math.abs(spd - (currentSettings.ttsSpeed || 1.0)) < 0.05) {
-        pill.classList.add('active');
-      } else {
-        pill.classList.remove('active');
-      }
-    });
-
-    updateApiKeyUI();
-    maybeAutoFetchKey();
-  });
 
   // Resetar Contadores Manualmente no Popup
   const btnQuickResetCounters = document.getElementById('btnQuickResetCounters');
