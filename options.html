@@ -431,10 +431,9 @@
 
         <nav class="sidebar-nav">
           <button class="tab-btn active" data-tab="tab-lab">⚡ Laboratório</button>
-          <button class="tab-btn" data-tab="tab-agents">🎭 Agentes &amp; API</button>
-          <button class="tab-btn" data-tab="tab-mixer">🎛️ Mixer Master DSP</button>
-          <button class="tab-btn" data-tab="tab-history">🎙️ Histórico STT</button>
-          <button class="tab-btn" data-tab="tab-instructions">📑 Guia de Atalhos</button>
+          <button class="tab-btn" data-tab="tab-agents">🎭 Agentes</button>
+          <button class="tab-btn" data-tab="tab-keys">🔑 Chaves API</button>
+          <button class="tab-btn" data-tab="tab-history">🎙️ Histórico e atalho</button>
           <button class="tab-btn" data-tab="tab-github">🐙 Sincronização Git</button>
         </nav>
 
@@ -513,7 +512,7 @@
         </div>
       </div>
 
-      <!-- ABA 2: AGENTES, MODELOS & API -->
+      <!-- ABA 2: AGENTES -->
       <div id="tab-agents" class="tab-content">
         <!-- Seleção de Agente Ativo da Aplicação -->
         <div class="card">
@@ -546,28 +545,6 @@
           <select id="sttModel" style="display:none;">
             <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
           </select>
-        </div>
-
-        <!-- Painel de Chaves Rotativas API Gemini -->
-        <div class="card">
-          <div class="card-title">🔑 Painel de Chaves Rotativas (Google Gemini API)</div>
-          <p style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">
-            Insira até 9 Chaves de API diferentes para habilitar o balanceamento e rotação automática de cota.
-            Cada chave permite 10 requisições por modelo por dia. Quando atingir 10 requisições no modelo 3.5, a extensão alterna para o modelo 3.1 da mesma chave, e após gastar as 20 solicitações da chave, avança para a próxima chave, totalizando 180 chamadas diárias!
-          </p>
-          <p style="font-size: 11px; color: #38bdf8; margin-bottom: 16px; font-weight: 600;">
-            ⚡ RENOVAÇÃO AUTOMÁTICA: As cotas reiniciam automaticamente todos os dias às 4:00 AM (Horário de Brasília).
-          </p>
-
-          <div id="apiKeysContainer" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
-            <!-- Gerado dinamicamente via JS de forma organizada e limpa -->
-          </div>
-
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <button id="testActiveKeyBtn" class="btn btn-secondary">🔍 Testar Chave Ativa Atual</button>
-            <button id="btnResetQuotaCounters" class="btn btn-danger" style="font-size: 11px; padding: 8px 14px;">⚡ Resetar Contadores Manualmente</button>
-            <span id="pingResult" style="font-size: 12px; color: #34d399; font-weight: 600;"></span>
-          </div>
         </div>
 
         <!-- Gerenciador de Agentes & Instruções de Comportamento -->
@@ -615,7 +592,7 @@
               </div>
             </div>
 
-            <!-- VINCULAÇÃO DE MODELOS AO AGENTE (NOVO) -->
+            <!-- VINCULAÇÃO DE MODELOS AO AGENTE -->
             <div class="grid-2" style="background: rgba(56, 189, 248, 0.04); border: 1px dashed rgba(56, 189, 248, 0.2); padding: 12px; border-radius: 8px;">
               <div class="input-group" style="margin-bottom:0;">
                 <label for="agentTtsModelSelect">🔊 Modelo TTS do Agente</label>
@@ -666,7 +643,7 @@
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px;">
               <div style="display:flex; gap:8px; flex:1; flex-wrap:wrap;">
                 <button id="btnEditSelectedAgent" class="btn" style="background:#059669; flex:1; min-width:180px;">✏️ Editar Agente Selecionado</button>
-                <button id="btnSaveAsNewAgent" class="btn" style="background:#0284c7; flex:1; min-width:180px;">💾 Salvar Como Novo Agente</button>
+                <button id="btnSaveAsNewAgent" class="btn" style="background:#0284c7; flex:1; min-width:180px;">💾 Criar Agente</button>
                 <button id="btnDuplicateAgent" class="btn btn-secondary">📋 Duplicar</button>
               </div>
               <button id="btnDeleteAgent" class="btn btn-danger" style="display:none;">🗑️ Excluir</button>
@@ -674,11 +651,8 @@
             <div id="agentActionFeedback" style="font-size:12px; font-weight:600; min-height:16px;"></div>
           </div>
         </div>
-      </div>
 
-      <!-- ABA 3: MIXER TTS COMPLETO & SPECTRUM DSP -->
-      <div id="tab-mixer" class="tab-content">
-        <!-- Monitor DSP & Visualizador de Espectro FFT -->
+        <!-- Monitor DSP & Visualizador de Espectro FFT (Trazido para Agentes) -->
         <div class="dsp-card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <div class="card-title" style="margin-bottom:0;">
@@ -717,7 +691,7 @@
           </div>
         </div>
 
-        <!-- Seleção de Vozes Neutras & Controles Master -->
+        <!-- Seleção de Vozes Neutras & Controles Master (Trazido para Agentes) -->
         <div class="card">
           <div class="card-title">🔊 Seleção de Voz Natural Ativa</div>
           <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">
@@ -784,8 +758,34 @@
         </div>
       </div>
 
-      <!-- ABA 4: HISTÓRICO DE TRANSCRIÇÕES -->
+      <!-- ABA 3: CHAVES API (NOVO) -->
+      <div id="tab-keys" class="tab-content">
+        <!-- Painel de Chaves Rotativas API Gemini -->
+        <div class="card">
+          <div class="card-title">🔑 Painel de Chaves Rotativas (Google Gemini API)</div>
+          <p style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">
+            Insira até 9 Chaves de API diferentes para habilitar o balanceamento e rotação automática de cota.
+            Cada chave permite 10 requisições por modelo por dia. Quando atingir 10 requisições no modelo 3.5, a extensão alterna para o modelo 3.1 da mesma chave, e após gastar as 20 solicitações da chave, avança para a próxima chave, totalizando 180 chamadas diárias!
+          </p>
+          <p style="font-size: 11px; color: #38bdf8; margin-bottom: 16px; font-weight: 600;">
+            ⚡ RENOVAÇÃO AUTOMÁTICA: As cotas reiniciam automaticamente todos os dias às 4:00 AM (Horário de Brasília).
+          </p>
+
+          <div id="apiKeysContainer" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+            <!-- Gerado dinamicamente via JS de forma organizada e limpa -->
+          </div>
+
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="testActiveKeyBtn" class="btn btn-secondary">🔍 Testar Chave Ativa Atual</button>
+            <button id="btnResetQuotaCounters" class="btn btn-danger" style="font-size: 11px; padding: 8px 14px;">⚡ Resetar Contadores Manualmente</button>
+            <span id="pingResult" style="font-size: 12px; color: #34d399; font-weight: 600;"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA 4: HISTÓRICO E ATALHO (COMBINADO) -->
       <div id="tab-history" class="tab-content">
+        <!-- Histórico STT -->
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
             <div class="card-title" style="margin-bottom:0;">🎙️ Histórico de Transcrições de Voz (STT)</div>
@@ -795,10 +795,8 @@
             <div style="text-align:center; padding:32px; color:#64748b;">Carregando histórico...</div>
           </div>
         </div>
-      </div>
 
-      <!-- ABA 5: ESTÚDIO & INSTRUÇÕES -->
-      <div id="tab-instructions" class="tab-content">
+        <!-- Guia de Atalhos -->
         <div class="card">
           <div class="card-title">📖 Guia Rápido de Atalhos da Extensão</div>
           <div class="grid-3" style="margin-bottom:20px;">

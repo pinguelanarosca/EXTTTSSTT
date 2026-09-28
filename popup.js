@@ -648,6 +648,11 @@
       btn.classList.add('active');
       const pane = document.getElementById(btn.dataset.tab);
       if (pane) pane.classList.add('active');
+
+      if (btn.dataset.tab === 'tab-history') {
+        loadHistory();
+        loadApiLogs();
+      }
     });
   });
 

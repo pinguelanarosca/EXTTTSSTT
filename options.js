@@ -747,7 +747,7 @@
       const target = document.getElementById(btn.dataset.tab);
       if (target) {
         target.classList.add('active');
-        if (btn.dataset.tab === 'tab-mixer') {
+        if (btn.dataset.tab === 'tab-agents' || btn.dataset.tab === 'tab-mixer') {
           setTimeout(initSpectrumCanvas, 50);
         } else if (btn.dataset.tab === 'tab-history') {
           loadHistoryTable();
