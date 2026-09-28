@@ -120,7 +120,10 @@
     sttModel: 'gemini-3.5-flash-lite',
     ttsVoice: 'Kore',
     activeAgentId: 'default-natural',
+    activeNarratorAgentId: 'default-natural',
+    activeTranscriberAgentId: 'default-natural',
     customAgents: [],
+    customVoices: [],
     locutionInstruction: DEFAULT_AGENTS[0].locutionInstruction,
     narratorInstruction: DEFAULT_AGENTS[0].narratorInstruction,
     transcriberInstruction: DEFAULT_AGENTS[0].transcriberInstruction,
@@ -138,6 +141,18 @@
   function getActiveAgent() {
     const list = [...DEFAULT_AGENTS, ...(Array.isArray(settings.customAgents) ? settings.customAgents : [])];
     return list.find(a => a.id === settings.activeAgentId) || list[0];
+  }
+
+  function getCurrentNarratorAgent() {
+    const activeId = settings.activeNarratorAgentId || settings.activeAgentId || 'default-natural';
+    const list = [...DEFAULT_AGENTS, ...(Array.isArray(settings.customAgents) ? settings.customAgents : [])];
+    return list.find(a => a.id === activeId) || list[0];
+  }
+
+  function getCurrentTranscriberAgent() {
+    const activeId = settings.activeTranscriberAgentId || settings.activeAgentId || 'default-natural';
+    const list = [...DEFAULT_AGENTS, ...(Array.isArray(settings.customAgents) ? settings.customAgents : [])];
+    return list.find(a => a.id === activeId) || list[0];
   }
 
   function loadSettings() {
@@ -1220,26 +1235,34 @@
 
   function resolveDirectGeminiModelName(modelName) {
     const m = String(modelName || '').toLowerCase().trim();
-    if (m.includes('thinking') || m.includes('extended')) return 'gemini-2.0-flash-thinking-exp';
-    if (m.includes('live') && m.includes('3.8')) return 'gemini-2.0-flash-exp';
-    if (m.includes('live') && (m.includes('flash') || m.includes('3'))) return 'gemini-2.5-flash';
+    if (m === 'gemini-3.8-live-thinking' || m === 'gemini-3.8-live-extended-thinking' || m.includes('thinking')) {
+      return 'gemini-3.8-live-extended-thinking';
+    }
+    if (m === 'gemini-3.8-live') return 'gemini-3.8-live';
+    if (m === 'gemini-3-flash-live') return 'gemini-3-flash-live';
+    if (m === 'gemini-3.5-transcribe-live' || m.includes('transcribe-live') || m.includes('translate')) {
+      return 'gemini-3.5-transcribe-live';
+    }
+    if (m.endsWith('-tts') || m.includes('flash-lite-tts') || m.includes('flash-tts')) {
+      return m;
+    }
     if (m.includes('maps') || m.includes('grounding')) return 'gemini-2.5-flash';
     if (m.includes('3.8-flash-lite') || m.includes('lite')) return 'gemini-2.5-flash-lite';
     if (m.includes('3.8-flash') || m.includes('3.8')) return 'gemini-2.5-flash';
     if (m.includes('3.1-flash') || m.includes('3.1')) return 'gemini-2.0-flash';
     if (m.includes('2.5-flash') || m.includes('2.5')) return 'gemini-2.5-flash';
-    return 'gemini-2.5-flash';
+    return m || 'gemini-2.5-flash';
   }
 
   const EXT_TTS_CASCADE = [
-    'gemini-3.8-live-thinking',
-    'gemini-3.8-live',
-    'gemini-3-flash-live',
     'gemini-3.8-flash-lite-tts',
     'gemini-3.8-flash-tts',
     'gemini-3.1-flash-tts',
     'gemini-2.5-flash-tts',
-    'gemini-3.1-flash-maps-grounding'
+    'gemini-3-flash-live',
+    'gemini-3.5-transcribe-live',
+    'gemini-3.8-live',
+    'gemini-3.8-live-thinking'
   ];
 
   const EXT_STT_CASCADE = [
@@ -1250,7 +1273,7 @@
     'gemini-3.8-flash-stt',
     'gemini-3.1-flash-stt',
     'gemini-2.5-flash-stt',
-    'gemini-3.1-flash-maps-grounding'
+    'gemini-3.5-transcribe-live'
   ];
 
   async function directGeminiTTS(text, voiceOverride = null, instOverride = null) {
@@ -1260,7 +1283,8 @@
       keys.push(settings.apiKey || '');
     }
 
-    let baseVoiceName = voiceOverride || settings.ttsVoice || 'Kore';
+    const activeAgent = getCurrentNarratorAgent();
+    let baseVoiceName = voiceOverride || activeAgent?.preferredVoice || settings.ttsVoice || 'Kore';
     let voiceInstruction = instOverride || '';
 
     const customVoices = settings.customVoices || [];
@@ -1272,13 +1296,12 @@
       }
     }
 
-    let fullInstruction = settings.narratorInstruction || 'Narre com dicção clara e entonação natural em português:';
+    let fullInstruction = instOverride || activeAgent.narratorInstruction || settings.narratorInstruction || 'Narre com dicção clara e entonação natural em português:';
     if (voiceInstruction) {
       fullInstruction = '[Instrução da Voz: ' + voiceInstruction + ']\n' + fullInstruction;
     }
     const prompt = fullInstruction + '\n' + text;
 
-    const activeAgent = getActiveAgent();
     const chosenTTS = activeAgent.ttsModel || settings.ttsModel || 'gemini-3.8-flash-lite-tts';
     const ttsCascade = [chosenTTS, ...EXT_TTS_CASCADE.filter(m => m !== chosenTTS)];
 
@@ -1394,11 +1417,8 @@
 
     const cleanBase64 = audioBase64.includes(',') ? audioBase64.split(',')[1] : audioBase64;
     const cleanMime = (mimeType || 'audio/webm').split(';')[0];
-    const prompt = settings.transcriberInstruction || 'Transcreva com fidelidade absoluta o áudio recebido. Retorne apenas o texto transcrito, sem introduções ou aspas.';
-
-    const activeTranscribAgentId = settings.activeTranscriberAgentId || settings.activeAgentId || 'default-natural';
-    const list = [...DEFAULT_AGENTS, ...(Array.isArray(settings.customAgents) ? settings.customAgents : [])];
-    const activeAgent = list.find(a => a.id === activeTranscribAgentId) || list[0];
+    const activeAgent = getCurrentTranscriberAgent();
+    const prompt = activeAgent.transcriberInstruction || settings.transcriberInstruction || 'Transcreva com fidelidade absoluta o áudio recebido. Retorne apenas o texto transcrito, sem introduções ou aspas.';
     const chosenSTT = activeAgent.sttModel || settings.sttModel || 'gemini-3.5-flash-lite';
     const sttCascade = [chosenSTT, ...EXT_STT_CASCADE.filter(m => m !== chosenSTT)];
 

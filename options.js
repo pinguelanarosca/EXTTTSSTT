@@ -543,7 +543,12 @@
   const OFFICIAL_TTS_MODELS = [
     'gemini-3.8-flash-lite-tts',
     'gemini-3.8-flash-tts',
-    'gemini-3.1-flash-tts-preview'
+    'gemini-3.1-flash-tts',
+    'gemini-2.5-flash-tts',
+    'gemini-3-flash-live',
+    'gemini-3.5-transcribe-live',
+    'gemini-3.8-live',
+    'gemini-3.8-live-thinking'
   ];
 
   const OFFICIAL_STT_MODELS = [
@@ -621,15 +626,23 @@
 
   function resolveDirectGeminiModelName(modelName) {
     const m = String(modelName || '').toLowerCase().trim();
-    if (m.includes('thinking') || m.includes('extended')) return 'gemini-2.0-flash-thinking-exp';
-    if (m.includes('live') && m.includes('3.8')) return 'gemini-2.0-flash-exp';
-    if (m.includes('live') && (m.includes('flash') || m.includes('3'))) return 'gemini-2.5-flash';
+    if (m === 'gemini-3.8-live-thinking' || m === 'gemini-3.8-live-extended-thinking' || m.includes('thinking')) {
+      return 'gemini-3.8-live-extended-thinking';
+    }
+    if (m === 'gemini-3.8-live') return 'gemini-3.8-live';
+    if (m === 'gemini-3-flash-live') return 'gemini-3-flash-live';
+    if (m === 'gemini-3.5-transcribe-live' || m.includes('transcribe-live') || m.includes('translate')) {
+      return 'gemini-3.5-transcribe-live';
+    }
+    if (m.endsWith('-tts') || m.includes('flash-lite-tts') || m.includes('flash-tts')) {
+      return m; // Mantém o modelo TTS nativo intacto
+    }
     if (m.includes('maps') || m.includes('grounding')) return 'gemini-2.5-flash';
     if (m.includes('3.8-flash-lite') || m.includes('lite')) return 'gemini-2.5-flash-lite';
     if (m.includes('3.8-flash') || m.includes('3.8')) return 'gemini-2.5-flash';
     if (m.includes('3.1-flash') || m.includes('3.1')) return 'gemini-2.0-flash';
     if (m.includes('2.5-flash') || m.includes('2.5')) return 'gemini-2.5-flash';
-    return 'gemini-2.5-flash';
+    return m || 'gemini-2.5-flash';
   }
 
   async function directGeminiTTS(text, _ignored, voiceName, instructionOverride = null) {
