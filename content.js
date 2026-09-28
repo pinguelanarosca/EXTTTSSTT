@@ -1389,8 +1389,7 @@
               if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ quotaCounters: counters });
               }
-              keyExhausted = true;
-              break;
+              continue;
             }
 
             if (attempt < 2) {
@@ -1496,8 +1495,7 @@
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
               chrome.storage.local.set({ quotaCounters: counters });
             }
-            keyExhausted = true;
-            break;
+            continue;
           }
         }
       }

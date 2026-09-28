@@ -545,14 +545,13 @@
               errorMessage: err.message || String(err)
             });
 
-            if (isQuotaExceededError(err)) {
+             if (isQuotaExceededError(err)) {
               const counters = data.quotaCounters || {};
               counters[`key_${k}_model_${m % 2}`] = 10;
               if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ quotaCounters: counters });
               }
-              keyExhausted = true;
-              break;
+              continue;
             }
 
             if (attempt < 2) {
@@ -661,8 +660,7 @@
               if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ quotaCounters: counters });
               }
-              keyExhausted = true;
-              break;
+              continue;
             }
 
             if (attempt < 2) {

@@ -729,13 +729,12 @@
           lastErr = err;
           console.warn(`[TTS Options Fallback] Falha com Chave #${k + 1}, modelo ${modelName}:`, err);
 
-          // Se for erro de cota, marcar essa combinação chave/modelo como esgotada no cache local
           if (isQuotaExceededError(err)) {
             const counters = data.quotaCounters || {};
             counters[`key_${k}_model_${m % 2}`] = 10;
             chrome.storage.local.set({ quotaCounters: counters });
-            // Avança para o próximo modelo/chave
-            break;
+            // Avança para o próximo modelo na cascata
+            continue;
           }
         }
       }
@@ -804,7 +803,7 @@
             const counters = data.quotaCounters || {};
             counters[`key_${k}_model_${m % 2}`] = 10;
             chrome.storage.local.set({ quotaCounters: counters });
-            break;
+            continue;
           }
         }
       }
