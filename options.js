@@ -614,9 +614,30 @@
     });
   }
 
+  function isQuotaExceededError(err) {
+    const msg = String(err.message || err).toLowerCase();
+    return msg.includes('quota') || msg.includes('limit') || msg.includes('exhausted') || msg.includes('429') || msg.includes('exceeded');
+  }
+
+  function resolveDirectGeminiModelName(modelName) {
+    const m = String(modelName || '').toLowerCase().trim();
+    if (m.includes('thinking') || m.includes('extended')) return 'gemini-2.0-flash-thinking-exp';
+    if (m.includes('live') && m.includes('3.8')) return 'gemini-2.0-flash-exp';
+    if (m.includes('live') && (m.includes('flash') || m.includes('3'))) return 'gemini-2.5-flash';
+    if (m.includes('maps') || m.includes('grounding')) return 'gemini-2.5-flash';
+    if (m.includes('3.8-flash-lite') || m.includes('lite')) return 'gemini-2.5-flash-lite';
+    if (m.includes('3.8-flash') || m.includes('3.8')) return 'gemini-2.5-flash';
+    if (m.includes('3.1-flash') || m.includes('3.1')) return 'gemini-2.0-flash';
+    if (m.includes('2.5-flash') || m.includes('2.5')) return 'gemini-2.5-flash';
+    return 'gemini-2.5-flash';
+  }
+
   async function directGeminiTTS(text, _ignored, voiceName, instructionOverride = null) {
-    const creds = await getRotatingCredentials();
-    if (!creds.apiKey) throw new Error('Insira sua Chave Gemini no painel de chaves rotativas da aba Agentes & API.');
+    const data = await getRotationData();
+    const keys = data.apiKeys.map(k => k ? k.trim() : '').filter(Boolean);
+    if (keys.length === 0) {
+      keys.push(currentSettings.apiKey || '');
+    }
 
     let baseVoiceName = voiceName || selectedVoice || 'Kore';
     let voiceInstruction = '';
@@ -638,103 +659,145 @@
     const promptText = fullInstruction + '\n' + text;
     const selectedV = baseVoiceName;
 
-    // Incrementa cota antes da requisição para alinhar com a métrica do Google
-    await incrementQuotaCounter(creds.keyIndex, creds.modelIndex, creds.logicalQuotaDay, creds.counters);
-
     const chosenTTS = currentSettings.ttsModel || 'gemini-3.8-flash-lite-tts';
     const ttsCascade = [chosenTTS, ...OFFICIAL_TTS_MODELS.filter(m => m !== chosenTTS)];
 
     let lastErr = null;
-    for (const ttsModel of ttsCascade) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${ttsModel}:generateContent?key=${encodeURIComponent(creds.apiKey)}`;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: promptText }] }],
-            generationConfig: {
-              responseModalities: ['AUDIO'],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName: selectedV }
+
+    // Iterar pelas chaves de API disponíveis
+    for (let k = 0; k < keys.length; k++) {
+      const apiKey = keys[k];
+
+      // Para cada chave, iteramos sobre a cascata de modelos
+      for (let m = 0; m < ttsCascade.length; m++) {
+        const modelName = ttsCascade[m];
+        const resolvedApiName = resolveDirectGeminiModelName(modelName);
+
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedApiName}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: promptText }] }],
+              generationConfig: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                  voiceConfig: {
+                    prebuiltVoiceConfig: { voiceName: selectedV }
+                  }
                 }
               }
-            }
-          })
-        });
+            })
+          });
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error?.message || (`Erro Gemini TTS (${res.status})`));
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error?.message || (`HTTP ${res.status}`));
+          }
+
+          const resData = await res.json();
+          const candidate = resData.candidates?.[0]?.content?.parts?.[0];
+          const audioData = candidate?.inlineData?.data;
+          if (!audioData) throw new Error(`O modelo ${modelName} não retornou fluxo de áudio.`);
+
+          // Incrementa cota da chave
+          await incrementQuotaCounter(k, m % 2, getLogicalQuotaDay(), data.quotaCounters || {});
+
+          const binaryStr = atob(audioData);
+          const pcmBytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            pcmBytes[i] = binaryStr.charCodeAt(i);
+          }
+          const wavBuffer = pcmToWav(pcmBytes, 24000);
+          return await uint8ArrayToBase64(new Uint8Array(wavBuffer));
+
+        } catch (err) {
+          lastErr = err;
+          console.warn(`[TTS Options Fallback] Falha com Chave #${k + 1}, modelo ${modelName}:`, err);
+
+          // Se for erro de cota, marcar essa combinação chave/modelo como esgotada no cache local
+          if (isQuotaExceededError(err)) {
+            const counters = data.quotaCounters || {};
+            counters[`key_${k}_model_${m % 2}`] = 10;
+            chrome.storage.local.set({ quotaCounters: counters });
+            // Avança para o próximo modelo/chave
+            break;
+          }
         }
-
-        const data = await res.json();
-        const candidate = data.candidates?.[0]?.content?.parts?.[0];
-        const audioData = candidate?.inlineData?.data;
-        if (!audioData) throw new Error(`O modelo ${ttsModel} não retornou fluxo de áudio.`);
-
-        const binaryStr = atob(audioData);
-        const pcmBytes = new Uint8Array(binaryStr.length);
-        for (let i = 0; i < binaryStr.length; i++) {
-          pcmBytes[i] = binaryStr.charCodeAt(i);
-        }
-        const wavBuffer = pcmToWav(pcmBytes, 24000);
-        return await uint8ArrayToBase64(new Uint8Array(wavBuffer));
-      } catch (err) {
-        lastErr = err;
-        console.warn(`[STT&TTS Options] Falha no modelo TTS ${ttsModel}:`, err);
       }
     }
 
-    throw lastErr || new Error('Nenhum modelo de TTS conseguiu gerar o áudio.');
+    throw lastErr || new Error('Nenhum modelo ou chave de API conseguiu gerar o áudio.');
   }
 
   async function directGeminiSTT(base64Audio, _ignored) {
-    const creds = await getRotatingCredentials();
-    if (!creds.apiKey) throw new Error('Insira sua Chave Gemini no painel de chaves rotativas da aba Agentes & API.');
+    const data = await getRotationData();
+    const keys = data.apiKeys.map(k => k ? k.trim() : '').filter(Boolean);
+    if (keys.length === 0) {
+      keys.push(currentSettings.apiKey || '');
+    }
 
     const cleanBase64 = base64Audio.includes(',') ? base64Audio.split(',')[1] : base64Audio;
     const promptText = currentSettings.transcriberInstruction || 'Transcreva com fidelidade o áudio.';
-
-    await incrementQuotaCounter(creds.keyIndex, creds.modelIndex, creds.logicalQuotaDay, creds.counters);
 
     const chosenSTT = currentSettings.sttModel || 'gemini-3.5-flash-lite';
     const sttCascade = [chosenSTT, ...OFFICIAL_STT_MODELS.filter(m => m !== chosenSTT)];
 
     let lastErr = null;
-    for (const modelName of sttCascade) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(creds.apiKey)}`;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { inlineData: { mimeType: 'audio/webm', data: cleanBase64 } },
-                { text: promptText }
-              ]
-            }]
-          })
-        });
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error?.message || (`Erro Gemini STT (${res.status})`));
+    // Iterar pelas chaves de API disponíveis
+    for (let k = 0; k < keys.length; k++) {
+      const apiKey = keys[k];
+
+      // Para cada chave, iteramos sobre a cascata de modelos
+      for (let m = 0; m < sttCascade.length; m++) {
+        const modelName = sttCascade[m];
+        const resolvedApiName = resolveDirectGeminiModelName(modelName);
+
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedApiName}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { inlineData: { mimeType: 'audio/webm', data: cleanBase64 } },
+                  { text: promptText }
+                ]
+              }]
+            })
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error?.message || (`HTTP ${res.status}`));
+          }
+
+          const resData = await res.json();
+          const text = resData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          if (!text) throw new Error(`O modelo ${modelName} retornou texto vazio.`);
+
+          // Incrementa cota da chave
+          await incrementQuotaCounter(k, m % 2, getLogicalQuotaDay(), data.quotaCounters || {});
+
+          return text;
+        } catch (err) {
+          lastErr = err;
+          console.warn(`[STT Options Fallback] Falha com Chave #${k + 1}, modelo ${modelName}:`, err);
+
+          if (isQuotaExceededError(err)) {
+            const counters = data.quotaCounters || {};
+            counters[`key_${k}_model_${m % 2}`] = 10;
+            chrome.storage.local.set({ quotaCounters: counters });
+            break;
+          }
         }
-
-        const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-        if (!text) throw new Error(`O modelo ${modelName} retornou texto vazio.`);
-        return text;
-      } catch (err) {
-        lastErr = err;
-        console.warn(`[STT&TTS Options] Falha no modelo STT ${modelName}:`, err);
       }
     }
 
-    throw lastErr || new Error('Nenhum modelo de STT conseguiu transcrever o áudio.');
+    throw lastErr || new Error('Nenhum modelo ou chave de API conseguiu transcrever o áudio.');
   }
 
   // Navegação por Abas

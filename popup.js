@@ -397,11 +397,32 @@
     throw new Error('Falha em todos os modelos (' + modelList.join(' -> ') + '): ' + msg);
   }
 
-  // Direct Gemini TTS - Primário: Gemini 3.5 Flash Lite (com fallback 3.1 Flash Lite -> 3.5 Flash -> TTS Preview)
+  function resolveDirectGeminiModelName(modelName) {
+    const m = String(modelName || '').toLowerCase().trim();
+    if (m.includes('thinking') || m.includes('extended')) return 'gemini-2.0-flash-thinking-exp';
+    if (m.includes('live') && m.includes('3.8')) return 'gemini-2.0-flash-exp';
+    if (m.includes('live') && (m.includes('flash') || m.includes('3'))) return 'gemini-2.5-flash';
+    if (m.includes('maps') || m.includes('grounding')) return 'gemini-2.5-flash';
+    if (m.includes('3.8-flash-lite') || m.includes('lite')) return 'gemini-2.5-flash-lite';
+    if (m.includes('3.8-flash') || m.includes('3.8')) return 'gemini-2.5-flash';
+    if (m.includes('3.1-flash') || m.includes('3.1')) return 'gemini-2.0-flash';
+    if (m.includes('2.5-flash') || m.includes('2.5')) return 'gemini-2.5-flash';
+    return 'gemini-2.5-flash';
+  }
+
+  function isQuotaExceededError(err) {
+    const msg = String(err.message || err).toLowerCase();
+    return msg.includes('quota') || msg.includes('limit') || msg.includes('exhausted') || msg.includes('429') || msg.includes('exceeded');
+  }
+
+  // Direct Gemini TTS - Primário: Gemini 3.5/3.8 Flash Lite (com suporte a cascata de modelos e rotação automática de cota)
   async function directGeminiTTS(text, voiceOverride = null, instOverride = null) {
-    const creds = await getRotatingCredentials();
-    if (!creds.apiKey) throw new Error('Chave Gemini não configurada');
-    
+    const data = await getRotationData();
+    const keys = data.apiKeys.map(k => k ? k.trim() : '').filter(Boolean);
+    if (keys.length === 0) {
+      keys.push(currentSettings.apiKey || '');
+    }
+
     let baseVoiceName = voiceOverride || currentSettings.ttsVoice || 'Kore';
     let voiceInstruction = instOverride || '';
 
@@ -421,94 +442,223 @@
     }
     fullPrompt += '\n' + text;
 
-    await incrementQuotaCounter(creds.keyIndex, creds.modelIndex, creds.logicalQuotaDay, creds.counters);
-    const useCount = creds.counters[`key_${creds.keyIndex}_model_${creds.modelIndex}`] || 0;
-    const payloadInfo = `Texto: ${text.length} chars | Voz: ${baseVoiceName} | Chave #${creds.keyIndex + 1} | Modelo ${creds.modelIndex === 0 ? '3.5' : '3.1'} [${useCount}/10]`;
-
     const chosenTTS = currentSettings.ttsModel || 'gemini-3.8-flash-lite-tts';
     const ttsCascade = [chosenTTS, 'gemini-3.8-flash-tts', 'gemini-3.1-flash-tts-preview'].filter((v, i, a) => a.indexOf(v) === i);
 
-    return await executePopupFallback('TTS', ttsCascade, payloadInfo, async (modelName) => {
-      const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent?key=' + encodeURIComponent(creds.apiKey);
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: fullPrompt }] }],
-          generationConfig: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: {
-                  voiceName: baseVoiceName
+    let lastErr = null;
+
+    for (let k = 0; k < keys.length; k++) {
+      const apiKey = keys[k];
+      let keyExhausted = false;
+
+      for (let m = 0; m < ttsCascade.length; m++) {
+        if (keyExhausted) break;
+        const modelName = ttsCascade[m];
+        const resolvedApiName = resolveDirectGeminiModelName(modelName);
+
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          const attemptStart = Date.now();
+          const useCount = (data.quotaCounters || {})[`key_${k}_model_${m % 2}`] || 0;
+          const payloadInfo = `Texto: ${text.length} chars | Voz: ${baseVoiceName} | Chave #${k + 1}/${keys.length} | Modelo: ${modelName} (Tentativa ${attempt}/2) [${useCount}/10]`;
+
+          try {
+            const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + resolvedApiName + ':generateContent?key=' + encodeURIComponent(apiKey);
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: fullPrompt }] }],
+                generationConfig: {
+                  responseModalities: ['AUDIO'],
+                  speechConfig: {
+                    voiceConfig: {
+                      prebuiltVoiceConfig: { voiceName: baseVoiceName }
+                    }
+                  }
                 }
+              })
+            });
+
+            if (!res.ok) {
+              const errJson = await res.json().catch(() => ({}));
+              throw new Error(errJson.error?.message || ('HTTP ' + res.status));
+            }
+
+            const resData = await res.json();
+            const raw = resData.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+            if (!raw) throw new Error('O modelo ' + modelName + ' não retornou áudio');
+
+            // Incrementa contador de cota da chave
+            await incrementQuotaCounter(k, m % 2, getLogicalQuotaDay(), data.quotaCounters || {});
+
+            const latency = Date.now() - attemptStart;
+            savePopupApiLog({
+              action: 'TTS',
+              model: modelName,
+              latencyMs: latency,
+              statusCode: 200,
+              statusText: 'OK',
+              success: true,
+              payloadInfo: payloadInfo
+            });
+
+            const bin = atob(raw);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            const wavBuffer = pcmToWav(bytes, 24000);
+            return await uint8ArrayToBase64(new Uint8Array(wavBuffer));
+
+          } catch (err) {
+            lastErr = err;
+            const latency = Date.now() - attemptStart;
+            console.warn(`[Popup TTS Fallback] Falha com Chave #${k + 1}, modelo ${modelName}:`, err);
+
+            savePopupApiLog({
+              action: 'TTS',
+              model: modelName,
+              latencyMs: latency,
+              statusCode: isQuotaExceededError(err) ? 429 : 500,
+              statusText: `Chave #${k + 1} Falhou: ` + (err.message || 'Erro'),
+              success: false,
+              payloadInfo: payloadInfo,
+              errorMessage: err.message || String(err)
+            });
+
+            if (isQuotaExceededError(err)) {
+              const counters = data.quotaCounters || {};
+              counters[`key_${k}_model_${m % 2}`] = 10;
+              if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                chrome.storage.local.set({ quotaCounters: counters });
               }
+              keyExhausted = true;
+              break;
+            }
+
+            if (attempt < 2) {
+              await new Promise(r => setTimeout(r, 300));
             }
           }
-        })
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error?.message || ('Erro Gemini TTS: ' + res.status));
+        }
       }
+    }
 
-      const data = await res.json();
-      const candidate = data.candidates?.[0]?.content?.parts?.[0];
-      const audioData = candidate?.inlineData?.data;
-      if (!audioData) throw new Error('Nenhum áudio gerado pelo modelo ' + modelName);
-
-      const binaryStr = atob(audioData);
-      const pcmBytes = new Uint8Array(binaryStr.length);
-      for (let i = 0; i < binaryStr.length; i++) {
-        pcmBytes[i] = binaryStr.charCodeAt(i);
-      }
-      const wavBuffer = pcmToWav(pcmBytes, 24000);
-      return await uint8ArrayToBase64(new Uint8Array(wavBuffer));
-    });
+    let msg = lastErr?.message || 'Erro desconhecido';
+    if (isQuotaExceededError(msg)) {
+      msg = 'Cota do plano gratuito do Gemini excedida (429) em todas as chaves configuradas. Por favor insira chaves adicionais no painel ou aguarde a renovação diária.';
+    }
+    throw new Error('Cadeia de fallback de chaves/modelos esgotada no Popup. Erro final: ' + msg);
   }
 
-  // Direct Gemini STT - Primário: Gemini 3.5 Flash Lite (com fallback 3.1 Flash Lite -> 3.5 Flash)
+  // Direct Gemini STT - Primário: Gemini 3.5 Flash Lite (com suporte a cascata de modelos e rotação automática de cota)
   async function directGeminiSTT(base64Audio, mimeType = 'audio/webm') {
-    const creds = await getRotatingCredentials();
-    if (!creds.apiKey) throw new Error('Chave Gemini não configurada');
+    const data = await getRotationData();
+    const keys = data.apiKeys.map(k => k ? k.trim() : '').filter(Boolean);
+    if (keys.length === 0) {
+      keys.push(currentSettings.apiKey || '');
+    }
 
     const cleanBase64 = base64Audio.includes(',') ? base64Audio.split(',')[1] : base64Audio;
-    const promptText = currentSettings.transcriberInstruction || 'Transcreva com precisão o que foi dito neste áudio em português.';
-
-    await incrementQuotaCounter(creds.keyIndex, creds.modelIndex, creds.logicalQuotaDay, creds.counters);
-    const useCount = creds.counters[`key_${creds.keyIndex}_model_${creds.modelIndex}`] || 0;
-    const payloadInfo = `Áudio (${Math.round(cleanBase64.length / 1024)} KB) | Chave #${creds.keyIndex + 1} | Modelo ${creds.modelIndex === 0 ? '3.5' : '3.1'} [${useCount}/10]`;
+    const promptText = currentSettings.transcriberInstruction || 'Transcreva com fidelidade absoluta o áudio recebido. Retorne apenas o texto transcrito, sem introduções ou aspas.';
 
     const chosenSTT = currentSettings.sttModel || 'gemini-3.5-flash-lite';
     const sttCascade = [chosenSTT, 'gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-2.5-flash'].filter((v, i, a) => a.indexOf(v) === i);
 
-    return await executePopupFallback('STT', sttCascade, payloadInfo, async (modelName) => {
-      const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent?key=' + encodeURIComponent(creds.apiKey);
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { inlineData: { mimeType: mimeType, data: cleanBase64 } },
-              { text: promptText }
-            ]
-          }]
-        })
-      });
+    let lastErr = null;
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error?.message || ('Erro Gemini STT: ' + res.status));
+    for (let k = 0; k < keys.length; k++) {
+      const apiKey = keys[k];
+      let keyExhausted = false;
+
+      for (let m = 0; m < sttCascade.length; m++) {
+        if (keyExhausted) break;
+        const modelName = sttCascade[m];
+        const resolvedApiName = resolveDirectGeminiModelName(modelName);
+
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          const attemptStart = Date.now();
+          const useCount = (data.quotaCounters || {})[`key_${k}_model_${m % 2}`] || 0;
+          const payloadInfo = `Áudio (${Math.round(cleanBase64.length / 1024)} KB) | Chave #${k + 1}/${keys.length} | Modelo: ${modelName} (Tentativa ${attempt}/2) [${useCount}/10]`;
+
+          try {
+            const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + resolvedApiName + ':generateContent?key=' + encodeURIComponent(apiKey);
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [
+                    { inlineData: { mimeType: mimeType, data: cleanBase64 } },
+                    { text: promptText }
+                  ]
+                }]
+              })
+            });
+
+            if (!res.ok) {
+              const errJson = await res.json().catch(() => ({}));
+              throw new Error(errJson.error?.message || ('HTTP ' + res.status));
+            }
+
+            const resData = await res.json();
+            const text = resData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+            if (!text) throw new Error('O modelo ' + modelName + ' retornou transcrição vazia');
+
+            // Incrementa contador de cota da chave
+            await incrementQuotaCounter(k, m % 2, getLogicalQuotaDay(), data.quotaCounters || {});
+
+            const latency = Date.now() - attemptStart;
+            savePopupApiLog({
+              action: 'STT',
+              model: modelName,
+              latencyMs: latency,
+              statusCode: 200,
+              success: true,
+              payloadInfo: payloadInfo
+            });
+
+            return text;
+
+          } catch (err) {
+            lastErr = err;
+            const latency = Date.now() - attemptStart;
+            console.warn(`[Popup STT Fallback] Falha com Chave #${k + 1}, modelo ${modelName}:`, err);
+
+            savePopupApiLog({
+              action: 'STT',
+              model: modelName,
+              latencyMs: latency,
+              statusCode: isQuotaExceededError(err) ? 429 : 500,
+              statusText: `Chave #${k + 1} Falhou: ` + (err.message || 'Erro'),
+              success: false,
+              payloadInfo: payloadInfo,
+              errorMessage: err.message || String(err)
+            });
+
+            if (isQuotaExceededError(err)) {
+              const counters = data.quotaCounters || {};
+              counters[`key_${k}_model_${m % 2}`] = 10;
+              if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                chrome.storage.local.set({ quotaCounters: counters });
+              }
+              keyExhausted = true;
+              break;
+            }
+
+            if (attempt < 2) {
+              await new Promise(r => setTimeout(r, 300));
+            }
+          }
+        }
       }
+    }
 
-      const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      if (!text) throw new Error('Transcrição vazia retornada por ' + modelName);
-      return text;
-    });
+    let msg = lastErr?.message || 'Erro desconhecido';
+    if (isQuotaExceededError(msg)) {
+      msg = 'Cota do plano gratuito do Gemini excedida (429) em todas as chaves configuradas. Por favor insira chaves adicionais no painel ou aguarde a renovação diária.';
+    }
+    throw new Error('Cadeia de fallback de chaves/modelos esgotada no STT do Popup. Erro final: ' + msg);
   }
+
 
   function speakFallbackNative(text) {
     if (!window.speechSynthesis) return false;
@@ -1772,6 +1922,28 @@
         chrome.tabs.create({ url: 'chrome://restart' });
       } catch {
         addPopupUpdateLog('Abra uma nova aba e digite chrome://restart para reiniciar.');
+      }
+    });
+  }
+
+  // Escuta alterações de armazenamento em tempo real para sincronização instantânea
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local') {
+        if (changes.apiLogs) {
+          loadApiLogs();
+        }
+        if (changes.sessionTranscriptions) {
+          loadHistory();
+        }
+      }
+      if (area === 'sync') {
+        chrome.storage.sync.get(defaults, (items) => {
+          currentSettings = Object.assign(currentSettings, items);
+          const customList = Array.isArray(items.customAgents) ? items.customAgents : [];
+          allAgentsList = [...DEFAULT_AGENTS, ...customList];
+          renderAgentDropdown();
+        });
       }
     });
   }

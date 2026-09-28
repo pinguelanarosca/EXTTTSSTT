@@ -514,247 +514,239 @@
 
       <!-- ABA 2: AGENTES -->
       <div id="tab-agents" class="tab-content">
-        <!-- Seleção de Agente Ativo da Aplicação -->
-        <div class="card">
-          <div class="card-title">🎭 Seleção de Agente Ativo da Aplicação</div>
-          <p style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">
-            Substituindo a seleção manual de modelos: o agente selecionado aqui determina automaticamente os modelos de TTS/STT, vozes neurais e regras de fallback preferidas na aplicação.
-          </p>
+        <div style="display: grid; grid-template-columns: 1fr 1.25fr; gap: 24px; align-items: start;">
+          
+          <!-- COLUNA ESQUERDA: CONTROLESmaster E MONITORAMENTO -->
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- CARD 1: SELEÇÃO DE AGENTE ATIVO -->
+            <div class="card" style="margin-bottom:0;">
+              <div class="card-title">🎭 Seleção de Agente Ativo da Aplicação</div>
+              <p style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">
+                O agente ativo determina de forma dinâmica os modelos de TTS/STT, vozes neurais e modificadores de tom para todas as tarefas.
+              </p>
 
-          <div style="background:rgba(15, 23, 42, 0.8); border:1px solid #334155; border-radius:10px; padding:16px; margin-bottom:8px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-              <label for="globalAgentSelect" style="font-weight:700; color:#38bdf8; font-size:14px; margin:0;">
-                Escolha o Agente Geral Ativo:
-              </label>
-              <span id="globalAgentActiveBadge" style="font-size:11px; background:#059669; color:#fff; padding:3px 10px; border-radius:6px; font-weight:700;">EM USO</span>
-            </div>
-            <select id="globalAgentSelect" style="width:100%; font-size:13px; font-weight:600; padding:12px; background:#020617; border:1px solid #1e293b; color:#fff; border-radius:8px;">
-              <!-- Populado dinamicamente -->
-            </select>
-            <div id="globalAgentDetails" style="margin-top:12px; padding-top:12px; border-top:1px solid #1e293b; display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:12px;">
-              <div>🔊 <strong>Modelo TTS Vinculado:</strong> <span id="globalAgentTtsModel" style="color:#38bdf8; font-weight:600;">Carregando...</span></div>
-              <div>🎙️ <strong>Modelo STT Vinculado:</strong> <span id="globalAgentSttModel" style="color:#34d399; font-weight:600;">Carregando...</span></div>
-              <div style="grid-column: span 2;">🗣️ <strong>Voz Preferencial:</strong> <span id="globalAgentVoice" style="color:#e2e8f0;">Carregando...</span></div>
-            </div>
-          </div>
-
-          <!-- Elementos Ocultos de Compatibilidade com o Config fields de options.js -->
-          <select id="ttsModel" style="display:none;">
-            <option value="gemini-3.8-flash-lite-tts">gemini-3.8-flash-lite-tts</option>
-          </select>
-          <select id="sttModel" style="display:none;">
-            <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
-          </select>
-        </div>
-
-        <!-- Gerenciador de Agentes & Instruções de Comportamento -->
-        <div class="card" id="agentManagerCard">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-            <div class="card-title" style="margin-bottom:0;">🎭 Gerenciador de Agentes &amp; Modificadores</div>
-            <div style="display:flex; gap:8px;">
-              <button id="btnCreateNewAgent" class="btn" style="padding:6px 12px; font-size:11px; background:#0284c7; display:none;">➕ Criar Novo Agente</button>
-              <button id="btnResetAgentsDefault" class="btn btn-secondary" style="padding:6px 10px; font-size:11px;">🔄 Restaurar Padrões</button>
-            </div>
-          </div>
-          <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">
-            Selecione um agente para editá-lo ou configure um novo mix de personalização. Ao final, escolha entre salvar como um novo agente ou editar o selecionado.
-          </p>
-
-          <!-- Seletor de Agente Ativo na Central -->
-          <div style="background:rgba(15, 23, 42, 0.8); border:1px solid #334155; border-radius:8px; padding:12px; margin-bottom:16px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
-              <label for="agentSelectOptions" style="font-weight:700; color:#38bdf8; font-size:13px; margin:0;">
-                Editar / Carregar Dados do Agente:
-              </label>
-              <span id="agentActiveBadge" style="font-size:10px; background:#0284c7; color:#fff; padding:2px 8px; border-radius:4px; font-weight:700;">EM USO</span>
-            </div>
-            <select id="agentSelectOptions" style="width:100%; font-size:13px; font-weight:600; padding:10px; border-color:#0284c7;">
-              <!-- Populado dinamicamente -->
-            </select>
-          </div>
-
-          <!-- Formulário de Edição do Agente Selecionado -->
-          <div id="agentEditorPanel" style="display:flex; flex-direction:column; gap:12px; border-top:1px solid #1e293b; padding-top:16px;">
-            <div class="grid-2">
-              <div class="input-group">
-                <label for="agentNameInput">Nome do Agente / Personalidade</label>
-                <input type="text" id="agentNameInput" placeholder="Ex: Locutor Dinâmico, Professor Didático..." />
+              <div style="background:rgba(15, 23, 42, 0.8); border:1px solid #334155; border-radius:10px; padding:16px; margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                  <label for="globalAgentSelect" style="font-weight:700; color:#38bdf8; font-size:14px; margin:0;">
+                    Escolha o Agente Geral Ativo:
+                  </label>
+                  <span id="globalAgentActiveBadge" style="font-size:11px; background:#059669; color:#fff; padding:3px 10px; border-radius:6px; font-weight:700;">EM USO</span>
+                </div>
+                <select id="globalAgentSelect" style="width:100%; font-size:13px; font-weight:600; padding:12px; background:#020617; border:1px solid #1e293b; color:#fff; border-radius:8px;">
+                  <!-- Populado dinamicamente -->
+                </select>
+                <div id="globalAgentDetails" style="margin-top:12px; padding-top:12px; border-top:1px solid #1e293b; display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:12px;">
+                  <div>🔊 <strong>Modelo TTS Vinculado:</strong> <span id="globalAgentTtsModel" style="color:#38bdf8; font-weight:600;">Carregando...</span></div>
+                  <div>🎙️ <strong>Modelo STT Vinculado:</strong> <span id="globalAgentSttModel" style="color:#34d399; font-weight:600;">Carregando...</span></div>
+                  <div style="grid-column: span 2;">🗣️ <strong>Voz Preferencial:</strong> <span id="globalAgentVoice" style="color:#e2e8f0;">Carregando...</span></div>
+                </div>
               </div>
-              <div class="input-group">
-                <label for="agentVoiceSelect">Voz Neural Preferencial do Agente</label>
-                <select id="agentVoiceSelect">
-                  <option value="Kore">Kore (Equilibrada e Humana - Padrão)</option>
-                  <option value="Puck">Puck (Dinâmica e Jovem)</option>
-                  <option value="Charon">Charon (Grave e Serena)</option>
-                  <option value="Fenrir">Fenrir (Forte e Firme)</option>
-                  <option value="Zephyr">Zephyr (Suave e Calma)</option>
+
+              <!-- Elementos Ocultos de Compatibilidade com o Config fields de options.js -->
+              <select id="ttsModel" style="display:none;">
+                <option value="gemini-3.8-flash-lite-tts">gemini-3.8-flash-lite-tts</option>
+              </select>
+              <select id="sttModel" style="display:none;">
+                <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
+              </select>
+            </div>
+
+            <!-- CARD 2: SELEÇÃO DE TIMBRE DE VOZ ATIVO -->
+            <div class="card" style="margin-bottom:0;">
+              <div class="card-title">🔊 Seleção de Voz Natural Ativa</div>
+              <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">
+                Escolha o timbre neural do Gemini TTS para todas as narrações do sistema.
+              </p>
+
+              <div class="grid-2" id="voiceGrid" style="grid-template-columns:1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                <div class="voice-pill active" style="padding:10px;" data-voice="Kore">
+                  <span class="gender-tag" style="top:4px; right:4px;">Feminino</span>
+                  <div style="font-weight: 700; font-size: 12px; color: #38bdf8;">Kore</div>
+                  <div style="font-size: 10px; color: #94a3b8;">Voz Humana e Clara</div>
+                </div>
+                <div class="voice-pill" style="padding:10px;" data-voice="Puck">
+                  <span class="gender-tag" style="top:4px; right:4px;">Masculino</span>
+                  <div style="font-weight: 700; font-size: 12px;">Puck</div>
+                  <div style="font-size: 10px; color: #94a3b8;">Voz Jovem e Ágil</div>
+                </div>
+                <div class="voice-pill" style="padding:10px;" data-voice="Charon">
+                  <span class="gender-tag" style="top:4px; right:4px;">Masculino</span>
+                  <div style="font-weight: 700; font-size: 12px;">Charon</div>
+                  <div style="font-size: 10px; color: #94a3b8;">Voz Grave e Serena</div>
+                </div>
+                <div class="voice-pill" style="padding:10px;" data-voice="Fenrir">
+                  <span class="gender-tag" style="top:4px; right:4px;">Masculino</span>
+                  <div style="font-weight: 700; font-size: 12px;">Fenrir</div>
+                  <div style="font-size: 10px; color: #94a3b8;">Voz Firme e Forte</div>
+                </div>
+                <div class="voice-pill" style="padding:10px;" data-voice="Zephyr">
+                  <span class="gender-tag" style="top:4px; right:4px;">Feminino</span>
+                  <div style="font-weight: 700; font-size: 12px;">Zephyr</div>
+                  <div style="font-size: 10px; color: #94a3b8;">Voz Suave e Calma</div>
+                </div>
+                <div class="voice-pill" style="padding:10px;" data-voice="Aoede">
+                  <span class="gender-tag" style="top:4px; right:4px;">Feminino</span>
+                  <div style="font-weight: 700; font-size: 12px;">Aoede</div>
+                  <div style="font-size: 10px; color: #94a3b8;">Voz Expressiva</div>
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="input-group" style="margin-bottom:0;">
+                  <label for="ttsSpeed">Velocidade: <span id="speedVal" style="color: #38bdf8;">1.0x</span></label>
+                  <input type="range" id="ttsSpeed" min="0.5" max="2.0" step="0.1" value="1.0" />
+                </div>
+                <div class="input-group" style="margin-bottom:0;">
+                  <label for="ttsVolume">Volume Master: <span id="volumeVal" style="color: #38bdf8;">100%</span></label>
+                  <input type="range" id="ttsVolume" min="0" max="1.5" step="0.05" value="1.0" />
+                </div>
+              </div>
+
+              <button id="testMixerAudioBtn" class="btn" style="margin-top:14px; width:100%;">▶️ Testar Voz com Gemini e Espectro</button>
+            </div>
+
+            <!-- CARD 3: MONITOR DSP & VISUALIZADOR DE ESPECTRO FFT -->
+            <div class="dsp-card" style="margin-bottom:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div class="card-title" style="margin-bottom:0;">
+                  🎛️ Mixer TTS Completo
+                  <span style="font-size:10px; background:rgba(56,189,248,0.15); color:#38bdf8; padding:2px 8px; border-radius:6px; font-weight:700;">DSP</span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                  <button id="btnSpectrumFFT" class="btn btn-secondary" style="font-size:10px; padding:3px 8px;">FFT</button>
+                  <button id="btnSpectrumWave" class="btn btn-secondary" style="font-size:10px; padding:3px 8px;">Onda</button>
+                </div>
+              </div>
+
+              <div class="spectrum-container" style="height:110px;">
+                <canvas id="optSpectrumCanvas"></canvas>
+              </div>
+
+              <div class="grid-4" style="margin-top:12px; gap:8px;">
+                <div class="input-group" style="margin-bottom:0;">
+                  <label for="eqLow" style="font-size:11px;">Graves: <span id="eqLowVal" style="color:#38bdf8;">0dB</span></label>
+                  <input type="range" id="eqLow" min="-12" max="12" step="1" value="0" />
+                </div>
+                <div class="input-group" style="margin-bottom:0;">
+                  <label for="eqMid" style="font-size:11px;">Médios: <span id="eqMidVal" style="color:#38bdf8;">0dB</span></label>
+                  <input type="range" id="eqMid" min="-12" max="12" step="1" value="0" />
+                </div>
+                <div class="input-group" style="margin-bottom:0;">
+                  <label for="eqHigh" style="font-size:11px;">Agudos: <span id="eqHighVal" style="color:#38bdf8;">0dB</span></label>
+                  <input type="range" id="eqHigh" min="-12" max="12" step="1" value="0" />
+                </div>
+                <div class="input-group" style="margin-bottom:0;">
+                  <label for="ttsPitch" style="font-size:11px;">Tom: <span id="pitchVal" style="color:#38bdf8;">0 st</span></label>
+                  <input type="range" id="ttsPitch" min="-12" max="12" step="1" value="0" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUNA DIREITA: FORMULÁRIO COMPLETO DO GERENCIADOR DE AGENTES -->
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="card" id="agentManagerCard" style="margin-bottom:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                <div class="card-title" style="margin-bottom:0;">🎭 Gerenciador de Agentes &amp; Modificadores</div>
+                <button id="btnResetAgentsDefault" class="btn btn-secondary" style="padding:6px 10px; font-size:11px;">🔄 Restaurar Padrões</button>
+              </div>
+              <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">
+                Ajuste os parâmetros, selecione o agente e personalize seu mix de comportamento a seguir.
+              </p>
+
+              <!-- Seletor de Agente Ativo na Central -->
+              <div style="background:rgba(15, 23, 42, 0.8); border:1px solid #334155; border-radius:8px; padding:12px; margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+                  <label for="agentSelectOptions" style="font-weight:700; color:#38bdf8; font-size:13px; margin:0;">
+                    Editar / Carregar Dados do Agente:
+                  </label>
+                  <span id="agentActiveBadge" style="font-size:10px; background:#0284c7; color:#fff; padding:2px 8px; border-radius:4px; font-weight:700;">EM USO</span>
+                </div>
+                <select id="agentSelectOptions" style="width:100%; font-size:13px; font-weight:600; padding:10px; border-color:#0284c7;">
+                  <!-- Populado dinamicamente -->
                 </select>
               </div>
-            </div>
 
-            <!-- VINCULAÇÃO DE MODELOS AO AGENTE -->
-            <div class="grid-2" style="background: rgba(56, 189, 248, 0.04); border: 1px dashed rgba(56, 189, 248, 0.2); padding: 12px; border-radius: 8px;">
-              <div class="input-group" style="margin-bottom:0;">
-                <label for="agentTtsModelSelect">🔊 Modelo TTS do Agente</label>
-                <select id="agentTtsModelSelect" style="background:#020617; border:1px solid #1e293b; border-radius:8px; padding:10px; color:#f8fafc; font-size:12px;">
-                  <option value="gemini-3.8-flash-lite-tts">1. Gemini 3.8 Flash Lite TTS</option>
-                  <option value="gemini-3.8-flash-tts">2. Gemini 3.8 Flash TTS</option>
-                  <option value="gemini-3.1-flash-tts">3. Gemini 3.1 Flash TTS</option>
-                  <option value="gemini-2.5-flash-tts">4. Gemini 2.5 Flash TTS</option>
-                </select>
+              <!-- Formulário de Edição do Agente Selecionado -->
+              <div id="agentEditorPanel" style="display:flex; flex-direction:column; gap:12px; border-top:1px solid #1e293b; padding-top:16px;">
+                <div class="grid-2">
+                  <div class="input-group">
+                    <label for="agentNameInput">Nome do Agente / Personalidade</label>
+                    <input type="text" id="agentNameInput" placeholder="Ex: Locutor Dinâmico, Professor Didático..." />
+                  </div>
+                  <div class="input-group">
+                    <label for="agentVoiceSelect">Voz Neural do Agente</label>
+                    <select id="agentVoiceSelect">
+                      <option value="Kore">Kore (Equilibrada e Humana - Padrão)</option>
+                      <option value="Puck">Puck (Dinâmica e Jovem)</option>
+                      <option value="Charon">Charon (Grave e Serena)</option>
+                      <option value="Fenrir">Fenrir (Forte e Firme)</option>
+                      <option value="Zephyr">Zephyr (Suave e Calma)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- VINCULAÇÃO DE MODELOS AO AGENTE -->
+                <div class="grid-2" style="background: rgba(56, 189, 248, 0.04); border: 1px dashed rgba(56, 189, 248, 0.2); padding: 12px; border-radius: 8px;">
+                  <div class="input-group" style="margin-bottom:0;">
+                    <label for="agentTtsModelSelect">🔊 Modelo TTS do Agente</label>
+                    <select id="agentTtsModelSelect" style="background:#020617; border:1px solid #1e293b; border-radius:8px; padding:10px; color:#f8fafc; font-size:12px;">
+                      <option value="gemini-3.8-flash-lite-tts">1. Gemini 3.8 Flash Lite TTS</option>
+                      <option value="gemini-3.8-flash-tts">2. Gemini 3.8 Flash TTS</option>
+                      <option value="gemini-3.1-flash-tts">3. Gemini 3.1 Flash TTS</option>
+                      <option value="gemini-2.5-flash-tts">4. Gemini 2.5 Flash TTS</option>
+                    </select>
+                  </div>
+                  <div class="input-group" style="margin-bottom:0;">
+                    <label for="agentSttModelSelect">🎙️ Modelo STT do Agente</label>
+                    <select id="agentSttModelSelect" style="background:#020617; border:1px solid #1e293b; border-radius:8px; padding:10px; color:#f8fafc; font-size:12px;">
+                      <option value="gemini-3.5-flash-lite">1. Gemini 3.5 Flash Lite</option>
+                      <option value="gemini-3.1-flash-lite">2. Gemini 3.1 Flash Lite</option>
+                      <option value="gemini-3.8-flash">3. Gemini 3.8 Flash</option>
+                      <option value="gemini-2.5-flash">4. Gemini 2.5 Flash</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="input-group">
+                  <label for="agentDescInput">Descrição Curta / Finalidade</label>
+                  <input type="text" id="agentDescInput" placeholder="Ex: Voz dinâmica com ênfase comercial para anúncios e podcasts" />
+                </div>
+
+                <div class="input-group">
+                  <label for="locutionInstruction">Modalidade 1: Locução (Voz / Anúncios / Destaques)</label>
+                  <textarea id="locutionInstruction" rows="2" placeholder="Instruções para locução dinâmica..."></textarea>
+                </div>
+
+                <div class="input-group">
+                  <label for="narratorInstruction">Modalidade 2: Instruções Gerais para o Narrador (Ctrl+B)</label>
+                  <textarea id="narratorInstruction" rows="2" placeholder="Instruções comportamentais para o narrador de textos..."></textarea>
+                </div>
+
+                <div class="input-group">
+                  <label for="transcriberInstruction">Modalidade 3: Instruções para o Transcritor (STT Pause/Break)</label>
+                  <textarea id="transcriberInstruction" rows="2" placeholder="Instruções para pontuação e fidelidade da transcrição..."></textarea>
+                </div>
+
+                <div class="input-group">
+                  <label for="visionInstruction">Modalidade 4: Instruções para Recorte de Tela (Google Lens OCR)</label>
+                  <textarea id="visionInstruction" rows="2" placeholder="Instruções para leitura e análise de capturas de tela..."></textarea>
+                </div>
+
+                <!-- Botões de Ação do Agente -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px;">
+                  <div style="display:flex; gap:8px; flex:1; flex-wrap:wrap;">
+                    <button id="btnEditSelectedAgent" class="btn" style="background:#059669; flex:1; min-width:140px;">✏️ Editar Agente</button>
+                    <button id="btnSaveAsNewAgent" class="btn" style="background:#0284c7; flex:1; min-width:140px;">💾 Criar Agente</button>
+                    <button id="btnDuplicateAgent" class="btn btn-secondary">📋 Duplicar</button>
+                  </div>
+                  <button id="btnDeleteAgent" class="btn btn-danger" style="display:none;">🗑️ Excluir</button>
+                </div>
+                <div id="agentActionFeedback" style="font-size:12px; font-weight:600; min-height:16px;"></div>
               </div>
-              <div class="input-group" style="margin-bottom:0;">
-                <label for="agentSttModelSelect">🎙️ Modelo STT do Agente</label>
-                <select id="agentSttModelSelect" style="background:#020617; border:1px solid #1e293b; border-radius:8px; padding:10px; color:#f8fafc; font-size:12px;">
-                  <option value="gemini-3.5-flash-lite">1. Gemini 3.5 Flash Lite</option>
-                  <option value="gemini-3.1-flash-lite">2. Gemini 3.1 Flash Lite</option>
-                  <option value="gemini-3.8-flash">3. Gemini 3.8 Flash</option>
-                  <option value="gemini-2.5-flash">4. Gemini 2.5 Flash</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="input-group">
-              <label for="agentDescInput">Descrição Curta / Finalidade</label>
-              <input type="text" id="agentDescInput" placeholder="Ex: Voz dinâmica com ênfase comercial para anúncios e podcasts" />
-            </div>
-
-            <div class="input-group">
-              <label for="locutionInstruction">Modalidade 1: Locução (Voz / Anúncios / Destaques)</label>
-              <textarea id="locutionInstruction" rows="2" placeholder="Instruções para locução dinâmica..."></textarea>
-            </div>
-
-            <div class="input-group">
-              <label for="narratorInstruction">Modalidade 2: Instruções Gerais para o Narrador (Ctrl+B)</label>
-              <textarea id="narratorInstruction" rows="2" placeholder="Instruções comportamentais para o narrador de textos..."></textarea>
-            </div>
-
-            <div class="input-group">
-              <label for="transcriberInstruction">Modalidade 3: Instruções para o Transcritor (STT Pause/Break)</label>
-              <textarea id="transcriberInstruction" rows="2" placeholder="Instruções para pontuação e fidelidade da transcrição..."></textarea>
-            </div>
-
-            <div class="input-group">
-              <label for="visionInstruction">Modalidade 4: Instruções para Recorte de Tela (Google Lens OCR)</label>
-              <textarea id="visionInstruction" rows="2" placeholder="Instruções para leitura e análise de capturas de tela..."></textarea>
-            </div>
-
-            <!-- Botões de Ação do Agente -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px;">
-              <div style="display:flex; gap:8px; flex:1; flex-wrap:wrap;">
-                <button id="btnEditSelectedAgent" class="btn" style="background:#059669; flex:1; min-width:180px;">✏️ Editar Agente Selecionado</button>
-                <button id="btnSaveAsNewAgent" class="btn" style="background:#0284c7; flex:1; min-width:180px;">💾 Criar Agente</button>
-                <button id="btnDuplicateAgent" class="btn btn-secondary">📋 Duplicar</button>
-              </div>
-              <button id="btnDeleteAgent" class="btn btn-danger" style="display:none;">🗑️ Excluir</button>
-            </div>
-            <div id="agentActionFeedback" style="font-size:12px; font-weight:600; min-height:16px;"></div>
-          </div>
-        </div>
-
-        <!-- Monitor DSP & Visualizador de Espectro FFT (Trazido para Agentes) -->
-        <div class="dsp-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <div class="card-title" style="margin-bottom:0;">
-              🎛️ Mixer TTS Completo
-              <span style="font-size:10px; background:rgba(56,189,248,0.15); color:#38bdf8; padding:2px 8px; border-radius:6px; font-weight:700;">MONITOR MASTER DSP</span>
-            </div>
-            <div style="display:flex; gap:8px;">
-              <button id="btnSpectrumFFT" class="btn btn-secondary" style="font-size:11px; padding:4px 10px;">.il FFT</button>
-              <button id="btnSpectrumWave" class="btn btn-secondary" style="font-size:11px; padding:4px 10px;">~ Onda</button>
             </div>
           </div>
 
-          <!-- Canvas Espectro -->
-          <div class="spectrum-container">
-            <canvas id="optSpectrumCanvas"></canvas>
-          </div>
-
-          <!-- Equalizador Master (Graves, Médios, Agudos & Pitch) -->
-          <div class="grid-4" style="margin-top:16px;">
-            <div class="input-group">
-              <label for="eqLow">Graves (100Hz): <span id="eqLowVal" style="color:#38bdf8;">0dB</span></label>
-              <input type="range" id="eqLow" min="-12" max="12" step="1" value="0" />
-            </div>
-            <div class="input-group">
-              <label for="eqMid">Médios (1kHz): <span id="eqMidVal" style="color:#38bdf8;">0dB</span></label>
-              <input type="range" id="eqMid" min="-12" max="12" step="1" value="0" />
-            </div>
-            <div class="input-group">
-              <label for="eqHigh">Agudos (4kHz): <span id="eqHighVal" style="color:#38bdf8;">0dB</span></label>
-              <input type="range" id="eqHigh" min="-12" max="12" step="1" value="0" />
-            </div>
-            <div class="input-group">
-              <label for="ttsPitch">Tom &amp; Pitch: <span id="pitchVal" style="color:#38bdf8;">0 st</span></label>
-              <input type="range" id="ttsPitch" min="-12" max="12" step="1" value="0" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Seleção de Vozes Neutras & Controles Master (Trazido para Agentes) -->
-        <div class="card">
-          <div class="card-title">🔊 Seleção de Voz Natural Ativa</div>
-          <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">
-            Escolha o timbre neural do Gemini TTS para todas as narrações do sistema.
-          </p>
-
-          <div class="grid-4" id="voiceGrid" style="margin-bottom: 20px;">
-            <div class="voice-pill active" data-voice="Kore">
-              <span class="gender-tag">Feminino</span>
-              <div style="font-weight: 700; font-size: 13px; color: #38bdf8;">Kore</div>
-              <div style="font-size: 11px; color: #94a3b8;">Voz Equilibrada, Clara e Humana</div>
-            </div>
-            <div class="voice-pill" data-voice="Puck">
-              <span class="gender-tag">Masculino</span>
-              <div style="font-weight: 700; font-size: 13px;">Puck</div>
-              <div style="font-size: 11px; color: #94a3b8;">Voz Jovem, Dinâmica e Espontânea</div>
-            </div>
-            <div class="voice-pill" data-voice="Charon">
-              <span class="gender-tag">Masculino</span>
-              <div style="font-weight: 700; font-size: 13px;">Charon</div>
-              <div style="font-size: 11px; color: #94a3b8;">Voz Grave, Serena e Profunda</div>
-            </div>
-            <div class="voice-pill" data-voice="Fenrir">
-              <span class="gender-tag">Masculino</span>
-              <div style="font-weight: 700; font-size: 13px;">Fenrir</div>
-              <div style="font-size: 11px; color: #94a3b8;">Voz Firme, Imponente e Autoritária</div>
-            </div>
-            <div class="voice-pill" data-voice="Zephyr">
-              <span class="gender-tag">Feminino</span>
-              <div style="font-weight: 700; font-size: 13px;">Zephyr</div>
-              <div style="font-size: 11px; color: #94a3b8;">Voz Suave, Calma e Relaxante</div>
-            </div>
-            <div class="voice-pill" data-voice="Aoede">
-              <span class="gender-tag">Feminino</span>
-              <div style="font-weight: 700; font-size: 13px;">Aoede</div>
-              <div style="font-size: 11px; color: #94a3b8;">Voz Expressiva e Articulada</div>
-            </div>
-            <div class="voice-pill" data-voice="Calliope">
-              <span class="gender-tag">Feminino</span>
-              <div style="font-weight: 700; font-size: 13px;">Calliope</div>
-              <div style="font-size: 11px; color: #94a3b8;">Voz Melódica e Cadenciada</div>
-            </div>
-            <div class="voice-pill" data-voice="Orpheus">
-              <span class="gender-tag">Masculino</span>
-              <div style="font-weight: 700; font-size: 13px;">Orpheus</div>
-              <div style="font-size: 11px; color: #94a3b8;">Voz Teatral e Narrativa</div>
-            </div>
-          </div>
-
-          <div class="grid-2">
-            <div class="input-group">
-              <label for="ttsSpeed">Velocidade de Reprodução: <span id="speedVal" style="color: #38bdf8;">1.0x</span></label>
-              <input type="range" id="ttsSpeed" min="0.5" max="2.0" step="0.1" value="1.0" />
-            </div>
-            <div class="input-group">
-              <label for="ttsVolume">Volume Master: <span id="volumeVal" style="color: #38bdf8;">100%</span></label>
-              <input type="range" id="ttsVolume" min="0" max="1.5" step="0.05" value="1.0" />
-            </div>
-          </div>
-
-          <div style="margin-top: 10px; display: flex; gap: 10px;">
-            <button id="testMixerAudioBtn" class="btn">▶️ Testar Voz com Gemini e Espectro</button>
-          </div>
         </div>
       </div>
 

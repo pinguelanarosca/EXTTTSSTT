@@ -1213,6 +1213,11 @@
     throw new Error('Falha após retries na cadeia de fallback (' + modelList.join(' -> ') + '): ' + msg);
   }
 
+  function isQuotaExceededError(err) {
+    const msg = String(err.message || err).toLowerCase();
+    return msg.includes('quota') || msg.includes('limit') || msg.includes('exhausted') || msg.includes('429') || msg.includes('exceeded');
+  }
+
   function resolveDirectGeminiModelName(modelName) {
     const m = String(modelName || '').toLowerCase().trim();
     if (m.includes('thinking') || m.includes('extended')) return 'gemini-2.0-flash-thinking-exp';
@@ -1249,8 +1254,11 @@
   ];
 
   async function directGeminiTTS(text, voiceOverride = null, instOverride = null) {
-    const creds = await getRotatingCredentials();
-    if (!creds.apiKey) throw new Error('Sem chave de API configurada');
+    const data = await getRotationData();
+    const keys = data.apiKeys.map(k => k ? k.trim() : '').filter(Boolean);
+    if (keys.length === 0) {
+      keys.push(settings.apiKey || '');
+    }
 
     let baseVoiceName = voiceOverride || settings.ttsVoice || 'Kore';
     let voiceInstruction = instOverride || '';
@@ -1270,131 +1278,297 @@
     }
     const prompt = fullInstruction + '\n' + text;
 
-    // Incrementa o contador antes da chamada para alinhar com a métrica do Google
-    await incrementQuotaCounter(creds.keyIndex, creds.modelIndex, creds.logicalQuotaDay, creds.counters);
-    const useCount = creds.counters[`key_${creds.keyIndex}_model_${creds.modelIndex}`] || 0;
-    const payloadInfo = `Texto: ${text.length} chars | Voz: ${baseVoiceName} | Chave #${creds.keyIndex + 1} | Modelo ${creds.modelIndex === 0 ? '3.5' : '3.1'} [${useCount}/10]`;
-
     const activeAgent = getActiveAgent();
     const chosenTTS = activeAgent.ttsModel || settings.ttsModel || 'gemini-3.8-flash-lite-tts';
     const ttsCascade = [chosenTTS, ...EXT_TTS_CASCADE.filter(m => m !== chosenTTS)];
 
-    return await executeDirectWithFallback('TTS', ttsCascade, payloadInfo, async (modelName) => {
-      const resolvedApiName = resolveDirectGeminiModelName(modelName);
-      const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + resolvedApiName + ':generateContent?key=' + encodeURIComponent(creds.apiKey);
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-              voiceConfig: { prebuiltVoiceConfig: { voiceName: baseVoiceName } }
+    let lastErr = null;
+
+    for (let k = 0; k < keys.length; k++) {
+      const apiKey = keys[k];
+      let keyExhausted = false;
+
+      for (let m = 0; m < ttsCascade.length; m++) {
+        if (keyExhausted) break;
+        const modelName = ttsCascade[m];
+        const resolvedApiName = resolveDirectGeminiModelName(modelName);
+
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          const attemptStart = Date.now();
+          const payloadInfo = `Texto: ${text.length} chars | Voz: ${baseVoiceName} | Chave #${k + 1}/${keys.length} | Modelo: ${modelName} (Tentativa ${attempt}/2)`;
+
+          try {
+            const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + resolvedApiName + ':generateContent?key=' + encodeURIComponent(apiKey);
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                  responseModalities: ['AUDIO'],
+                  speechConfig: {
+                    voiceConfig: { prebuiltVoiceConfig: { voiceName: baseVoiceName } }
+                  }
+                }
+              })
+            });
+
+            if (!res.ok) {
+              const errJson = await res.json().catch(() => ({}));
+              throw new Error(errJson.error?.message || ('HTTP ' + res.status));
+            }
+
+            const resData = await res.json();
+            const raw = resData.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+            if (!raw) throw new Error('O modelo ' + modelName + ' não retornou áudio');
+
+            // Incrementa contador de cota da chave
+            await incrementQuotaCounter(k, m % 2, getLogicalQuotaDay(), data.quotaCounters || {});
+
+            const latency = Date.now() - attemptStart;
+            logApiCall({
+              action: 'TTS',
+              model: modelName,
+              latencyMs: latency,
+              statusCode: 200,
+              statusText: 'OK',
+              success: true,
+              payloadInfo: payloadInfo,
+              mode: 'direct'
+            });
+
+            const bin = atob(raw);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            const wavBlob = pcm16ToWavBlob(bytes, 24000);
+            return await blobToBase64(wavBlob);
+
+          } catch (err) {
+            lastErr = err;
+            const latency = Date.now() - attemptStart;
+            console.warn(`[TTS Fallback] Falha com Chave #${k + 1}, modelo ${modelName}:`, err);
+
+            logApiCall({
+              action: 'TTS',
+              model: modelName,
+              latencyMs: latency,
+              statusCode: isQuotaExceededError(err) ? 429 : 500,
+              statusText: `Chave #${k + 1} Falhou: ` + (err.message || 'Erro'),
+              success: false,
+              payloadInfo: payloadInfo,
+              errorMessage: err.message || String(err),
+              mode: 'direct'
+            });
+
+            if (isQuotaExceededError(err)) {
+              const counters = data.quotaCounters || {};
+              counters[`key_${k}_model_${m % 2}`] = 10;
+              if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                chrome.storage.local.set({ quotaCounters: counters });
+              }
+              keyExhausted = true;
+              break;
+            }
+
+            if (attempt < 2) {
+              await new Promise(r => setTimeout(r, 300));
             }
           }
-        })
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error?.message || ('HTTP ' + res.status));
+        }
       }
+    }
 
-      const data = await res.json();
-      const raw = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (!raw) throw new Error('O modelo ' + modelName + ' não retornou áudio');
-      const bin = atob(raw);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const wavBlob = pcm16ToWavBlob(bytes, 24000);
-      return await blobToBase64(wavBlob);
-    });
+    let msg = lastErr?.message || 'Erro desconhecido';
+    if (isQuotaExceededError(msg)) {
+      msg = 'Cota do plano gratuito do Gemini excedida (429) em todas as chaves configuradas. Por favor insira chaves adicionais no painel ou aguarde a renovação diária.';
+    }
+    throw new Error('Cadeia de fallback de chaves/modelos esgotada. Erro final: ' + msg);
   }
 
   async function directGeminiSTT(audioBase64, mimeType) {
-    const creds = await getRotatingCredentials();
-    if (!creds.apiKey) throw new Error('Sem chave de API configurada');
+    const data = await getRotationData();
+    const keys = data.apiKeys.map(k => k ? k.trim() : '').filter(Boolean);
+    if (keys.length === 0) {
+      keys.push(settings.apiKey || '');
+    }
 
     const cleanBase64 = audioBase64.includes(',') ? audioBase64.split(',')[1] : audioBase64;
     const cleanMime = (mimeType || 'audio/webm').split(';')[0];
     const prompt = settings.transcriberInstruction || 'Transcreva com fidelidade absoluta o áudio recebido. Retorne apenas o texto transcrito, sem introduções ou aspas.';
 
-    await incrementQuotaCounter(creds.keyIndex, creds.modelIndex, creds.logicalQuotaDay, creds.counters);
-    const useCount = creds.counters[`key_${creds.keyIndex}_model_${creds.modelIndex}`] || 0;
-    const payloadInfo = `Áudio (${Math.round(cleanBase64.length / 1024)} KB) | Chave #${creds.keyIndex + 1} | Modelo ${creds.modelIndex === 0 ? '3.5' : '3.1'} [${useCount}/10]`;
-
-    // Resolução de modelo do Agente Transcritor
     const activeTranscribAgentId = settings.activeTranscriberAgentId || settings.activeAgentId || 'default-natural';
     const list = [...DEFAULT_AGENTS, ...(Array.isArray(settings.customAgents) ? settings.customAgents : [])];
     const activeAgent = list.find(a => a.id === activeTranscribAgentId) || list[0];
     const chosenSTT = activeAgent.sttModel || settings.sttModel || 'gemini-3.5-flash-lite';
     const sttCascade = [chosenSTT, ...EXT_STT_CASCADE.filter(m => m !== chosenSTT)];
 
-    return await executeDirectWithFallback('STT', sttCascade, payloadInfo, async (modelName) => {
-      const resolvedApiName = resolveDirectGeminiModelName(modelName);
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedApiName}:generateContent?key=${encodeURIComponent(creds.apiKey)}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { inlineData: { mimeType: cleanMime, data: cleanBase64 } },
-              { text: prompt }
-            ]
-          }]
-        })
-      });
+    let lastErr = null;
 
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error?.message || ('HTTP ' + res.status));
+    for (let k = 0; k < keys.length; k++) {
+      const apiKey = keys[k];
+      let keyExhausted = false;
+
+      for (let m = 0; m < sttCascade.length; m++) {
+        if (keyExhausted) break;
+        const modelName = sttCascade[m];
+        const resolvedApiName = resolveDirectGeminiModelName(modelName);
+
+        const payloadInfo = `Áudio (${Math.round(cleanBase64.length / 1024)} KB) | Chave #${k + 1}/${keys.length} | Modelo: ${modelName}`;
+
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedApiName}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { inlineData: { mimeType: cleanMime, data: cleanBase64 } },
+                  { text: prompt }
+                ]
+              }]
+            })
+          });
+
+          if (!res.ok) {
+            const errJson = await res.json().catch(() => ({}));
+            throw new Error(errJson.error?.message || ('HTTP ' + res.status));
+          }
+
+          const resData = await res.json();
+          const text = resData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          if (!text) throw new Error('O modelo ' + modelName + ' retornou transcrição vazia');
+
+          await incrementQuotaCounter(k, m % 2, getLogicalQuotaDay(), data.quotaCounters || {});
+
+          logApiCall({
+            action: 'STT',
+            model: modelName,
+            latencyMs: 100,
+            statusCode: 200,
+            statusText: 'OK',
+            success: true,
+            payloadInfo: payloadInfo,
+            mode: 'direct'
+          });
+
+          return text;
+
+        } catch (err) {
+          lastErr = err;
+          console.warn(`[STT Fallback] Falha com Chave #${k + 1}, modelo ${modelName}:`, err);
+
+          logApiCall({
+            action: 'STT',
+            model: modelName,
+            latencyMs: 100,
+            statusCode: isQuotaExceededError(err) ? 429 : 500,
+            statusText: `Chave #${k + 1} Falhou: ` + (err.message || 'Erro'),
+            success: false,
+            payloadInfo: payloadInfo,
+            errorMessage: err.message || String(err),
+            mode: 'direct'
+          });
+
+          if (isQuotaExceededError(err)) {
+            const counters = data.quotaCounters || {};
+            counters[`key_${k}_model_${m % 2}`] = 10;
+            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+              chrome.storage.local.set({ quotaCounters: counters });
+            }
+            keyExhausted = true;
+            break;
+          }
+        }
       }
+    }
 
-      const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      if (!text) throw new Error('O modelo ' + modelName + ' retornou transcrição vazia');
-      return text;
-    });
+    throw lastErr || new Error('Nenhum modelo de STT ou chave de API conseguiu transcrever o áudio.');
   }
 
   async function directGeminiVision(imageBase64) {
-    const creds = await getRotatingCredentials();
-    if (!creds.apiKey) throw new Error('Sem chave de API configurada');
+    const data = await getRotationData();
+    const keys = data.apiKeys.map(k => k ? k.trim() : '').filter(Boolean);
+    if (keys.length === 0) {
+      keys.push(settings.apiKey || '');
+    }
 
     const cleanBase64 = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
     const prompt = settings.visionInstruction || 'Analise detalhadamente a imagem capturada da tela com o Google Lens e descreva os textos e elementos visuais com clareza em português.';
 
-    await incrementQuotaCounter(creds.keyIndex, creds.modelIndex, creds.logicalQuotaDay, creds.counters);
-    const useCount = creds.counters[`key_${creds.keyIndex}_model_${creds.modelIndex}`] || 0;
-    const payloadInfo = `Recorte Lens (${Math.round(cleanBase64.length / 1024)} KB) | Chave #${creds.keyIndex + 1} | Modelo ${creds.modelIndex === 0 ? '3.5' : '3.1'} [${useCount}/10]`;
+    let lastErr = null;
 
-    return await executeDirectWithFallback('Vision', [creds.model], payloadInfo, async (modelName) => {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(creds.apiKey)}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { inlineData: { mimeType: 'image/png', data: cleanBase64 } },
-              { text: prompt }
-            ]
-          }]
-        })
-      });
+    for (let k = 0; k < keys.length; k++) {
+      const apiKey = keys[k];
+      const modelName = 'gemini-2.5-flash';
+      const payloadInfo = `Recorte Lens (${Math.round(cleanBase64.length / 1024)} KB) | Chave #${k + 1}/${keys.length}`;
 
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error?.message || ('HTTP ' + res.status));
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { inlineData: { mimeType: 'image/png', data: cleanBase64 } },
+                { text: prompt }
+              ]
+            }]
+          })
+        });
+
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          throw new Error(errJson.error?.message || ('HTTP ' + res.status));
+        }
+
+        const resData = await res.json();
+        const text = resData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (!text) throw new Error('O modelo ' + modelName + ' não gerou interpretação visual');
+
+        await incrementQuotaCounter(k, 0, getLogicalQuotaDay(), data.quotaCounters || {});
+
+        logApiCall({
+          action: 'Vision',
+          model: modelName,
+          latencyMs: 100,
+          statusCode: 200,
+          statusText: 'OK',
+          success: true,
+          payloadInfo: payloadInfo,
+          mode: 'direct'
+        });
+
+        return text;
+
+      } catch (err) {
+        lastErr = err;
+        console.warn(`[Vision Fallback] Falha com Chave #${k + 1}:`, err);
+
+        logApiCall({
+          action: 'Vision',
+          model: modelName,
+          latencyMs: 100,
+          statusCode: isQuotaExceededError(err) ? 429 : 500,
+          statusText: `Chave #${k + 1} Falhou: ` + (err.message || 'Erro'),
+          success: false,
+          payloadInfo: payloadInfo,
+          errorMessage: err.message || String(err),
+          mode: 'direct'
+        });
+
+        if (isQuotaExceededError(err)) {
+          const counters = data.quotaCounters || {};
+          counters[`key_${k}_model_0`] = 10;
+          if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+            chrome.storage.local.set({ quotaCounters: counters });
+          }
+        }
       }
+    }
 
-      const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      if (!text) throw new Error('O modelo ' + modelName + ' não gerou interpretação visual');
-      return text;
-    });
+    throw lastErr || new Error('Nenhum modelo de Vision ou chave de API conseguiu interpretar a imagem.');
   }
 
   // -------------------------------------------------------------
